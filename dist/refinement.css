@@ -272,3 +272,31 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   .hero-content { max-width: 94%; }
   .album-card { width: 165px; min-width: 165px; }
 }
+
+/* Keep the full player cheap to composite while playback updates its timeline. */
+.player,
+.mobile-nav,
+.overlay-backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.has-fullscreen > .sidebar,
+.has-fullscreen > .main-shell,
+.has-fullscreen > .player,
+.has-fullscreen > .mobile-nav { visibility: hidden; }
+.fullscreen-player { animation: none; }
+.fullscreen-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: none;
+  opacity: .16;
+  pointer-events: none;
+}
+.fullscreen-player::after {
+  position: absolute;
+  pointer-events: none;
+  background: linear-gradient(180deg, #11101580, #111015ed 55%, #111015);
+}
