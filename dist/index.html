@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f7f8f4" />
-  <meta name="description" content="OpenMusic — музыка в твоём ритме. Интерактивный концепт музыкального пространства." />
-  <title>OpenMusic — на своей волне</title>
+  <meta name="theme-color" content="#0b0b0f" />
+  <meta name="description" content="OpenMusic — a quiet place to discover and play music." />
+  <title>OpenMusic — Listen your way</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,37 +13,36 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <aside class="sidebar" aria-label="Главная навигация">
-    <button class="wordmark" data-action="navigate" data-view="home" aria-label="OpenMusic, главная"><span class="brand-mark"><i></i><i></i><i></i><i></i></span>openmusic<span class="brand-dot">®</span></button>
-    <div class="nav-label">ТВОЁ ПРОСТРАНСТВО</div>
+  <aside class="sidebar" aria-label="Main navigation">
+    <button class="wordmark" data-action="navigate" data-view="home" aria-label="OpenMusic, home"><span class="brand-mark"><i></i><i></i><i></i><i></i></span>openmusic</button>
     <nav class="main-nav">
-      <button class="nav-item active" data-action="navigate" data-view="home"><span data-icon="compass"></span><span>Для тебя</span><span class="nav-active-dot"></span></button>
-      <button class="nav-item" data-action="navigate" data-view="search"><span data-icon="search"></span><span>Поиск</span><kbd>⌘ K</kbd></button>
-      <button class="nav-item" data-action="navigate" data-view="library"><span data-icon="library"></span><span>Моя медиатека</span></button>
+      <button class="nav-item active" data-action="navigate" data-view="home"><span data-icon="compass"></span><span>Home</span></button>
+      <button class="nav-item" data-action="navigate" data-view="search"><span data-icon="search"></span><span>Search</span></button>
+      <button class="nav-item" data-action="navigate" data-view="library"><span data-icon="library"></span><span>Your Library</span></button>
     </nav>
-    <div class="nav-label collection-label">КОЛЛЕКЦИЯ<button class="icon-button small" data-action="new-playlist" aria-label="Создать плейлист"><span data-icon="plus"></span></button></div>
+    <div class="nav-label collection-label">YOUR COLLECTION<button class="icon-button small" data-action="new-playlist" aria-label="Create playlist"><span data-icon="plus"></span></button></div>
     <nav class="collection-nav">
-      <button class="collection-item" data-action="navigate" data-view="liked"><span class="collection-cover liked-cover" data-icon="heart"></span><span>Мне нравится<small id="liked-count">0 треков</small></span></button>
-      <button class="collection-item" data-action="open-album" data-id="0"><img src="./assets/hero.png" alt="" /><span>После заката<small>Твой плейлист</small></span></button>
-      <button class="collection-item" data-action="open-album" data-id="1"><img src="./assets/cover-coast.jpg" alt="" /><span>Медленное утро<small>Твой плейлист</small></span></button>
+      <button class="collection-item" data-action="navigate" data-view="liked"><span class="collection-cover liked-cover" data-icon="heart"></span><span>Liked Songs<small id="liked-count">0 tracks</small></span></button>
+      <button class="collection-item" data-action="open-album" data-id="0"><img src="./assets/hero.png" alt="" /><span>Afterglow<small>Playlist</small></span></button>
+      <button class="collection-item" data-action="open-album" data-id="1"><img src="./assets/cover-coast.jpg" alt="" /><span>Blue Hours<small>Playlist</small></span></button>
       <div id="custom-playlists"></div>
     </nav>
-    <div class="sidebar-bottom"><div class="little-note"><span class="tiny-orbit"></span><p>Меньше шума.<br><strong>Больше музыки.</strong></p></div><button class="user-profile" data-action="profile"><span class="avatar">A</span><span>Алекс<span class="profile-subtitle">На своей волне</span></span><span data-icon="chevrons"></span></button></div>
+    <div class="sidebar-bottom"><button class="user-profile" data-action="profile"><span class="avatar">A</span><span>Alex</span><span data-icon="chevrons"></span></button></div>
   </aside>
 
   <main class="main-shell">
-    <header class="topbar"><div class="breadcrumb" id="breadcrumb">СЛУШАТЬ <span>/</span> ДЛЯ ТЕБЯ</div><div class="topbar-actions"><button class="search-trigger" aria-label="Поиск музыки" data-action="navigate" data-view="search"><span data-icon="search"></span><span>Что хочется послушать?</span><kbd>⌘ K</kbd></button><button class="icon-button notifications" data-action="notifications" aria-label="Уведомления"><span data-icon="bell"></span><i></i></button><button class="mobile-avatar avatar" data-action="profile" aria-label="Профиль">A</button></div></header>
+    <header class="topbar"><div class="breadcrumb" id="breadcrumb">HOME</div><div class="topbar-actions"><button class="search-trigger" aria-label="Search music" data-action="navigate" data-view="search"><span data-icon="search"></span><span>Search music</span><kbd>⌘ K</kbd></button><button class="mobile-avatar avatar" data-action="profile" aria-label="Profile">A</button></div></header>
     <div id="content" tabindex="-1"></div>
-    <footer class="page-footer"><span class="footer-mark">openmusic</span><span>Звучит как ты.</span><button data-action="about">Об этом пространстве <span>↗</span></button></footer>
+    <footer class="page-footer"><span class="footer-mark">openmusic</span><button data-action="about">About OpenMusic <span>↗</span></button></footer>
   </main>
 
-  <section class="player" aria-label="Музыкальный плеер">
-    <div class="now-playing"><button class="mini-art-button" data-action="fullscreen" aria-label="Открыть полноэкранный плеер"><img id="player-art" src="./assets/hero.png" alt="Обложка текущего трека" /><span data-icon="expand"></span></button><button class="now-playing-info" data-action="fullscreen"><strong id="player-title">Weightless</strong><span id="player-artist">Sora · Afterglow</span></button><button class="icon-button player-like" data-action="like-current" aria-label="Добавить текущий трек в любимое"><span data-icon="heart"></span></button></div>
-    <div class="playback"><div class="transport"><button class="icon-button secondary shuffle-button" data-action="shuffle" aria-label="Перемешать" aria-pressed="false"><span data-icon="shuffle"></span></button><button class="icon-button" data-action="previous" aria-label="Предыдущий трек"><span data-icon="previous"></span></button><button class="play-button main-play" data-action="toggle-play" aria-label="Воспроизвести"><span data-icon="play"></span></button><button class="icon-button" data-action="next" aria-label="Следующий трек"><span data-icon="next"></span></button><button class="icon-button secondary repeat-button" data-action="repeat" aria-label="Повторять трек" aria-pressed="false"><span data-icon="repeat"></span></button></div><div class="timeline"><time id="elapsed">0:00</time><input id="progress" type="range" min="0" max="218" value="0" step="0.1" aria-label="Позиция воспроизведения" /><time id="duration">3:38</time></div></div>
-    <div class="player-tools"><span class="audio-quality" title="Оригинальные демокомпозиции">STEREO</span><button class="icon-button volume-button" data-action="mute" aria-label="Выключить звук"><span data-icon="volume"></span></button><input id="volume" type="range" min="0" max="1" step="0.01" value="0.65" aria-label="Громкость" /><span class="tool-divider"></span><button class="icon-button queue-button" data-action="queue" aria-label="Открыть очередь" aria-expanded="false"><span data-icon="queue"></span></button><button class="icon-button" data-action="fullscreen" aria-label="На весь экран"><span data-icon="expand"></span></button></div>
+  <section class="player" aria-label="Music player">
+    <div class="now-playing"><button class="mini-art-button" data-action="fullscreen" aria-label="Open full player"><img id="player-art" src="./assets/hero.png" alt="Current track artwork" /><span data-icon="expand"></span></button><button class="now-playing-info" data-action="fullscreen"><strong id="player-title">Weightless</strong><span id="player-artist">Sora · Afterglow</span></button><button class="icon-button player-like" data-action="like-current" aria-label="Like current track"><span data-icon="heart"></span></button></div>
+    <div class="playback"><div class="transport"><button class="icon-button secondary shuffle-button" data-action="shuffle" aria-label="Shuffle" aria-pressed="false"><span data-icon="shuffle"></span></button><button class="icon-button" data-action="previous" aria-label="Previous track"><span data-icon="previous"></span></button><button class="play-button main-play" data-action="toggle-play" aria-label="Play"><span data-icon="play"></span></button><button class="icon-button" data-action="next" aria-label="Next track"><span data-icon="next"></span></button><button class="icon-button secondary repeat-button" data-action="repeat" aria-label="Repeat track" aria-pressed="false"><span data-icon="repeat"></span></button></div><div class="timeline"><time id="elapsed">0:00</time><input id="progress" type="range" min="0" max="218" value="0" step="0.1" aria-label="Playback position" /><time id="duration">3:38</time></div></div>
+    <div class="player-tools"><span class="audio-quality" title="Original demo compositions">STEREO</span><button class="icon-button volume-button" data-action="mute" aria-label="Mute"><span data-icon="volume"></span></button><input id="volume" type="range" min="0" max="1" step="0.01" value="0.65" aria-label="Volume" /><span class="tool-divider"></span><button class="icon-button queue-button" data-action="queue" aria-label="Open queue" aria-expanded="false"><span data-icon="queue"></span></button><button class="icon-button" data-action="fullscreen" aria-label="Full screen"><span data-icon="expand"></span></button></div>
   </section>
 
-  <nav class="mobile-nav" aria-label="Мобильная навигация"><button data-action="navigate" data-view="home" class="active"><span data-icon="compass"></span>Для тебя</button><button data-action="navigate" data-view="search"><span data-icon="search"></span>Поиск</button><button data-action="navigate" data-view="library"><span data-icon="library"></span>Медиатека</button></nav>
+  <nav class="mobile-nav" aria-label="Mobile navigation"><button data-action="navigate" data-view="home" class="active"><span data-icon="compass"></span>Home</button><button data-action="navigate" data-view="search"><span data-icon="search"></span>Search</button><button data-action="navigate" data-view="library"><span data-icon="library"></span>Library</button></nav>
   <div id="overlay-root"></div>
   <div id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="./app.js"></script>
