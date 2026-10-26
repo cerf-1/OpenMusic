@@ -178,8 +178,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #c5afea; outline-
 .player-tools { gap: 5px; }
 .player-tools input { display: block; width: 94px; height: 6px; }
 .player-tools .audio-quality, .player-tools .tool-divider { display: none; }
-.player-tools .queue-button, .player-tools [data-action="fullscreen"] { background: #28282e; }
-.player-tools .queue-button:hover, .player-tools [data-action="fullscreen"]:hover { background: #3a3a41; }
+.player-tools .queue-button { background: #28282e; }
+.player-tools .queue-button:hover { background: #3a3a41; }
 input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #5d5d65 var(--fill,0%)); }
 .fullscreen-header .icon-button { width: 48px; height: 48px; }
 .fullscreen-track .icon-button { width: 52px; height: 52px; }
@@ -280,9 +280,11 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-.fullscreen-player { animation: fade-in .3s ease-out both; }
-.fullscreen-header { animation: player-enter .32s ease-out both; }
-.fullscreen-inner { animation: player-enter .42s cubic-bezier(.2,.75,.2,1) both; }
+.has-fullscreen > .sidebar,
+.has-fullscreen > .main-shell,
+.has-fullscreen > .player,
+.has-fullscreen > .mobile-nav { visibility: hidden; }
+.fullscreen-player { animation: none; }
 .fullscreen-bg {
   position: absolute;
   inset: 0;
@@ -290,25 +292,11 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   height: 100%;
   object-fit: cover;
   filter: none;
-  opacity: .72;
-  animation: player-background-in .42s ease-out both;
+  opacity: .16;
   pointer-events: none;
 }
 .fullscreen-player::after {
   position: absolute;
   pointer-events: none;
   background: linear-gradient(180deg, #11101580, #111015ed 55%, #111015);
-}
-@keyframes player-enter {
-  from { opacity: 0; transform: translate3d(0, 20px, 0) scale(.985); }
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-@keyframes player-background-in {
-  from { opacity: 0; }
-  to { opacity: .72; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fullscreen-header,
-  .fullscreen-inner,
-  .fullscreen-bg { animation: none; }
 }
