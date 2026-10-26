@@ -280,11 +280,9 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-.has-fullscreen > .sidebar,
-.has-fullscreen > .main-shell,
-.has-fullscreen > .player,
-.has-fullscreen > .mobile-nav { visibility: hidden; }
-.fullscreen-player { animation: none; }
+.fullscreen-player { animation: fade-in .3s ease-out both; }
+.fullscreen-header { animation: player-enter .32s ease-out both; }
+.fullscreen-inner { animation: player-enter .42s cubic-bezier(.2,.75,.2,1) both; }
 .fullscreen-bg {
   position: absolute;
   inset: 0;
@@ -292,11 +290,25 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   height: 100%;
   object-fit: cover;
   filter: none;
-  opacity: .16;
+  opacity: .72;
+  animation: player-background-in .42s ease-out both;
   pointer-events: none;
 }
 .fullscreen-player::after {
   position: absolute;
   pointer-events: none;
   background: linear-gradient(180deg, #11101580, #111015ed 55%, #111015);
+}
+@keyframes player-enter {
+  from { opacity: 0; transform: translate3d(0, 20px, 0) scale(.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes player-background-in {
+  from { opacity: 0; }
+  to { opacity: .72; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fullscreen-header,
+  .fullscreen-inner,
+  .fullscreen-bg { animation: none; }
 }
