@@ -371,6 +371,7 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 }
 @media (prefers-reduced-motion: reduce) {
   .transport-glyph i, .transport .main-play, .transport .icon-button,
-  .search-trigger, .tab, .album-card, .track-row,
-  .timeline input::-webkit-slider-thumb, .timeline input::-moz-range-thumb { transition: none; }
+  .search-trigger, .tab, .album-card, .track-row { transition: none; }
+  .timeline input::-webkit-slider-thumb { transition: none; }
+  .timeline input::-moz-range-thumb { transition: none; }
 }
