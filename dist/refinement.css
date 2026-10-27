@@ -328,7 +328,7 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 }
 .mini-art-button, .mini-art-button img { border-radius: 14px; }
 .playback { min-width: 0; }
-.transport { gap: 12px; }
+.transport { gap: 4px; }
 .transport .main-play {
   width: 56px;
   height: 56px;
@@ -336,13 +336,13 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #d8c3f5;
+  color: #f1f1f3;
   box-shadow: none;
   transition: color 200ms ease, transform 200ms ease;
 }
 .transport .main-play:hover {
   background: transparent;
-  color: #eee2ff;
+  color: #fff;
   box-shadow: none;
   transform: translateY(-1px) scale(1.04);
 }
@@ -360,17 +360,18 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 [data-playing="true"] .transport-glyph .glyph-play { opacity: 0; transform: scale(.7); }
 [data-playing="true"] .transport-glyph .glyph-pause { opacity: 1; transform: scale(1); }
 .transport .icon-button {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
   border-radius: 10px;
-  color: #d6d0df;
+  color: #f1f1f3;
   transition: color 200ms ease, background 200ms ease, transform 200ms ease;
 }
 .transport .icon-button:not(.secondary) { background: transparent; }
-.transport .icon-button:not(.secondary) svg { width: 24px; height: 24px; }
-.transport .secondary { color: #a6a0b1; position: relative; }
-.transport .secondary svg { width: 18px; height: 18px; }
-.transport .icon-button:hover { background: transparent; color: #f6efff; transform: translateY(-1px); }
+.transport .icon-button:not(.secondary) svg { width: 48px; height: 48px; }
+.transport .secondary { color: #dedee3; position: relative; }
+.transport .secondary svg { width: 38px; height: 38px; }
+.transport .icon-button:hover { background: transparent; color: #fff; transform: translateY(-1px); }
 .transport .icon-button:active { transform: scale(.92); }
 .transport .icon-button.active { color: #d6befb; background: transparent; }
 .transport .secondary::after {
@@ -378,8 +379,27 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   border-radius: 50%; background: currentColor; opacity: 0;
 }
 .transport .secondary.active::after { opacity: 1; }
-.player-tools .queue-button { border-radius: 50%; background: #ffffff05; }
-.player-tools .queue-button:hover { background: #ffffff10; }
+/* Volume is one group; the queue has its own breathing room. */
+.player-tools { gap: 24px; }
+.volume-control { display: flex; align-items: center; gap: 2px; }
+.player-tools .volume-button { width: 40px; height: 44px; color: #dedee3; }
+.player-tools input { width: 96px; }
+.player-tools .queue-button { width: 44px; height: 44px; border-radius: 12px; background: transparent; }
+.player-tools .queue-button:hover { background: #ffffff0b; }
+.volume-control input, .volume-control input:hover {
+  height: 20px;
+  background: transparent;
+  --volume-rail: linear-gradient(90deg, #dedee3 var(--fill, 65%), #ffffff24 var(--fill, 65%));
+}
+.volume-control input::-webkit-slider-runnable-track { height: 4px; border-radius: 99px; background: var(--volume-rail); }
+.volume-control input::-moz-range-track { height: 4px; border-radius: 99px; background: var(--volume-rail); }
+.volume-control input::-webkit-slider-thumb { width: 8px; height: 8px; margin-top: -2px; background: #f1f1f3; }
+.volume-control input::-moz-range-thumb { width: 8px; height: 8px; border: 0; background: #f1f1f3; }
+@media (min-width: 721px) and (max-width: 980px) {
+  .transport { gap: 0; }
+  .transport .icon-button, .transport .main-play { width: 48px; height: 56px; }
+}
+@media (max-width: 980px) { .volume-control { display: none; } }
 .timeline { gap: 12px; margin-top: 4px; font-size: 11px; }
 .timeline time { min-width: 30px; color: #aaa3b5; }
 /* Keep the visual rail slim while making the actual input easy to grab. */
@@ -409,7 +429,8 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 .mobile-nav button.active>span:after { background: transparent; }
 @media (max-width: 720px) {
   .player { background: linear-gradient(115deg, #2c2735, #211f28); border: 1px solid #ffffff16; border-radius: 20px!important; box-shadow: 0 8px 24px #0005; }
-  .transport .main-play { width: 48px; height: 48px; }
+  .transport .main-play, .transport .icon-button { width: 48px; height: 48px; }
+  .transport .icon-button:not(.secondary) svg { width: 42px; height: 42px; }
   .transport-glyph, .transport-glyph svg { width: 42px; height: 42px; }
   .timeline { bottom: 0; }
   .timeline input, .timeline input:hover { height: 20px; }
