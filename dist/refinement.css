@@ -320,7 +320,7 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 .hero-pagination .icon-button { border: 0; background: #16131d40; }
 .hero-actions .pill-button.primary { box-shadow: none; }
 .hero-actions .pill-button.primary:hover { transform: none; }
-/* Soft transport: rounded silhouettes, a clear primary action and generous seek area. */
+/* Open transport: rounded glyphs carry the controls without circular backplates. */
 .player {
   background: linear-gradient(115deg, #201e26, #1a191f 55%, #201d27);
   border-color: #ffffff0e;
@@ -330,28 +330,28 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 .playback { min-width: 0; }
 .transport { gap: 12px; }
 .transport .main-play {
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
   flex-shrink: 0;
-  border: 1px solid #ffffff45;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #eee5ff, #c8b4ed);
-  color: #30243e;
-  box-shadow: 0 4px 16px #08050f35, inset 0 1px 0 #ffffff70;
-  transition: background 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #d8c3f5;
+  box-shadow: none;
+  transition: color 200ms ease, transform 200ms ease;
 }
 .transport .main-play:hover {
-  background: #eee5ff;
-  color: #30243e;
-  box-shadow: 0 5px 22px #b69bd42b;
+  background: transparent;
+  color: #eee2ff;
+  box-shadow: none;
   transform: translateY(-1px) scale(1.04);
 }
 .transport .main-play:active { transform: scale(.94); }
-.transport-glyph { display: grid; place-items: center; width: 28px; height: 28px; }
+.transport-glyph { display: grid; place-items: center; width: 48px; height: 48px; }
 .transport-glyph svg {
   grid-area: 1 / 1;
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
   fill: currentColor;
   stroke: none;
   transition: opacity 180ms ease, transform 220ms ease;
@@ -362,16 +362,17 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 .transport .icon-button {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 10px;
   color: #d6d0df;
   transition: color 200ms ease, background 200ms ease, transform 200ms ease;
 }
-.transport .icon-button:not(.secondary) { background: #ffffff06; }
+.transport .icon-button:not(.secondary) { background: transparent; }
+.transport .icon-button:not(.secondary) svg { width: 24px; height: 24px; }
 .transport .secondary { color: #a6a0b1; position: relative; }
 .transport .secondary svg { width: 18px; height: 18px; }
-.transport .icon-button:hover { background: #ffffff10; color: #f6efff; transform: translateY(-1px); }
+.transport .icon-button:hover { background: transparent; color: #f6efff; transform: translateY(-1px); }
 .transport .icon-button:active { transform: scale(.92); }
-.transport .icon-button.active { color: #d6befb; background: #c5a4f217; }
+.transport .icon-button.active { color: #d6befb; background: transparent; }
 .transport .secondary::after {
   content: ''; position: absolute; bottom: 3px; width: 3px; height: 3px;
   border-radius: 50%; background: currentColor; opacity: 0;
@@ -409,7 +410,7 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 @media (max-width: 720px) {
   .player { background: linear-gradient(115deg, #2c2735, #211f28); border: 1px solid #ffffff16; border-radius: 20px!important; box-shadow: 0 8px 24px #0005; }
   .transport .main-play { width: 48px; height: 48px; }
-  .transport-glyph { width: 28px; height: 28px; }
+  .transport-glyph, .transport-glyph svg { width: 42px; height: 42px; }
   .timeline { bottom: 0; }
   .timeline input, .timeline input:hover { height: 20px; }
   .timeline input::-webkit-slider-runnable-track { height: 3px; }
