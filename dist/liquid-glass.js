@@ -1,7 +1,10 @@
-// All motion is finite and compositor-driven; nothing runs while the glass is idle.
+// Motion is finite and uses transform/opacity; compositing still depends on the engine.
 export function createPlayerMaterial(player) {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const reducedTransparency = matchMedia('(prefers-reduced-transparency: reduce), (prefers-contrast: more)');
+  // CSS owns the rendering policy. Gecko uses bounded wave fronts instead of
+  // rasterizing two panel-width circles inside a short, clipped control bar.
+  const sweep = getComputedStyle(player).getPropertyValue('--glass-ripple').trim() === 'sweep';
   const effects = document.createElement('div');
   effects.className = 'player-glass-fx';
   effects.setAttribute('aria-hidden', 'true');
@@ -35,19 +38,28 @@ export function createPlayerMaterial(player) {
       const button = player.querySelector('.main-play').getBoundingClientRect();
       const x = button.left + button.width / 2 - bounds.left;
       const y = button.top + button.height / 2 - bounds.top;
-      // Reach the farthest corner, including when the transport sits at the right on mobile.
-      const radius = Math.hypot(Math.max(x, bounds.width - x), Math.max(y, bounds.height - y));
       effects.style.setProperty('--wave-x', `${x}px`);
       effects.style.setProperty('--wave-y', `${y}px`);
       const duration = playing ? 1250 : 1050;
+      // Keep the existing circular treatment on Blink/WebKit. The Gecko path
+      // paints only two narrow strips, regardless of viewport width or DPR.
+      const radius = sweep ? 0 : Math.hypot(Math.max(x, bounds.width - x), Math.max(y, bounds.height - y));
       for (const [index, ring] of [wave, echo].entries()) {
-        Object.assign(ring.style, {left: `${x}px`, top: `${y}px`, width: `${radius * 2}px`, height: `${radius * 2}px`});
+        Object.assign(ring.style, {
+          left: `${x}px`, top: sweep ? '0px' : `${y}px`,
+          width: sweep ? '96px' : `${radius * 2}px`,
+          height: sweep ? `${bounds.height}px` : `${radius * 2}px`
+        });
+        const start = sweep ? 'translateX(-50%) scaleX(.15)' : 'translate(-50%, -50%) scale(.025)';
+        const end = sweep
+          ? `translateX(${index === 0 ? -x - 96 : bounds.width - x + 96}px) scaleX(1)`
+          : 'translate(-50%, -50%) scale(1.04)';
         const animation = ring.animate([
-          {transform: 'translate(-50%, -50%) scale(.025)', opacity: 0},
+          {transform: start, opacity: 0},
           {opacity: playing ? .65 : .42, offset: .12},
           {opacity: .25, offset: .6},
-          {transform: 'translate(-50%, -50%) scale(1.04)', opacity: 0}
-        ], {duration, delay: index * 140, easing: 'cubic-bezier(.16,.55,.28,1)', fill: 'none'});
+          {transform: end, opacity: 0}
+        ], {duration, delay: sweep ? 0 : index * 140, easing: 'cubic-bezier(.16,.55,.28,1)', fill: 'none'});
         animations.push(animation);
       }
       animations.push(light.animate([

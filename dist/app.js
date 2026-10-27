@@ -1,5 +1,5 @@
 import { DemoAudioEngine } from './audio.js';
-import { createPlayerMaterial } from './liquid-glass.js?v=1';
+import { createPlayerMaterial } from './liquid-glass.js?v=2';
 
 const playerMaterial = createPlayerMaterial(document.querySelector('.player'));
 

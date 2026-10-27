@@ -1,6 +1,7 @@
 /* Liquid Glass is reserved for the floating control layer. */
 .player {
   --glass-tint: #edc29c;
+  --glass-ripple: rings;
   overflow: hidden;
   border: 1px solid #ffffff1c;
   backdrop-filter: none;
@@ -100,6 +101,33 @@
     -webkit-backdrop-filter: blur(18px) saturate(1.2);
     box-shadow: inset 0 1px 0 #ffffff06;
   }
+}
+/* Gecko mitigation, deliberately scoped to the rendering engine rather than a
+   Firefox UA/version. CSS support is not a guarantee of cheap compositing.
+   Keep the glass lighting, but avoid live backdrop reads, the composite mask,
+   and oversized circle surfaces. Blink/WebKit retain their original material. */
+@supports (-moz-appearance: none) {
+  .player { --glass-ripple: sweep; background: #202024; }
+  .player::before { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .player::after {
+    background: none;
+    mask: none;
+    -webkit-mask: none;
+    box-shadow: inset 0 1px 0 #ffffff24, inset 0 -1px 0 #ffffff0a;
+  }
+  .glass-wave, .glass-wave-echo {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: radial-gradient(ellipse at center, #f4edff30, #ded1ff0d 40%, transparent 72%);
+  }
+  .hero-save, .hero-pagination .icon-button, .mobile-nav, .modal-close, #toast {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .mobile-nav { background: #15131bf5; }
+  /* A transformed photo remains animated without re-filtering its pixels. */
+  .album-card:hover img { filter: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .player-glass-fx { display: none; }
