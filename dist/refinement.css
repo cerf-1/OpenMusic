@@ -322,13 +322,13 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 .hero-actions .pill-button.primary:hover { transform: none; }
 /* Open transport: rounded glyphs carry the controls without circular backplates. */
 .player {
-  background: linear-gradient(115deg, #201e26, #1a191f 55%, #201d27);
+  background: #19191d;
   border-color: #ffffff0e;
   box-shadow: 0 -8px 32px #00000018;
 }
 .mini-art-button, .mini-art-button img { border-radius: 14px; }
 .playback { min-width: 0; }
-.transport { gap: 4px; }
+.transport { gap: 8px; }
 .transport .main-play {
   width: 56px;
   height: 56px;
@@ -360,29 +360,33 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 [data-playing="true"] .transport-glyph .glyph-play { opacity: 0; transform: scale(.7); }
 [data-playing="true"] .transport-glyph .glyph-pause { opacity: 1; transform: scale(1); }
 .transport .icon-button {
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border-radius: 10px;
-  color: #f1f1f3;
+  color: #ceccd4;
   transition: color 200ms ease, background 200ms ease, transform 200ms ease;
 }
 .transport .icon-button:not(.secondary) { background: transparent; }
-.transport .icon-button:not(.secondary) svg { width: 48px; height: 48px; }
-.transport .secondary { color: #dedee3; position: relative; }
-.transport .secondary svg { width: 38px; height: 38px; }
+.transport .icon-button:not(.secondary) svg { width: 32px; height: 32px; }
+.transport .secondary { color: #98969f; position: relative; }
+.transport .secondary svg { width: 20px; height: 20px; }
 .transport .icon-button:hover { background: transparent; color: #fff; transform: translateY(-1px); }
 .transport .icon-button:active { transform: scale(.92); }
 .transport .icon-button.active { color: #d6befb; background: transparent; }
 .transport .secondary::after {
-  content: ''; position: absolute; bottom: 3px; width: 3px; height: 3px;
+  content: ''; position: absolute; bottom: 5px; width: 3px; height: 3px;
   border-radius: 50%; background: currentColor; opacity: 0;
 }
 .transport .secondary.active::after { opacity: 1; }
 /* Volume is one group; the queue has its own breathing room. */
 .player-tools { gap: 24px; }
 .volume-control { display: flex; align-items: center; gap: 2px; }
-.player-tools .volume-button { width: 40px; height: 44px; color: #dedee3; }
+.player-tools .volume-button { width: 40px; height: 44px; color: #aaa8b2; }
+.player-tools .icon-button svg { width: 20px; height: 20px; }
+.player-tools .queue-button { color: #aaa8b2; }
+.player-tools .icon-button:hover { color: #fff; }
+.player-tools .queue-button[aria-expanded="true"] { color: #d6befb; }
 .player-tools input { width: 96px; }
 .player-tools .queue-button { width: 44px; height: 44px; border-radius: 12px; background: transparent; }
 .player-tools .queue-button:hover { background: #ffffff0b; }
@@ -397,46 +401,49 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
 .volume-control input::-moz-range-thumb { width: 8px; height: 8px; border: 0; background: #f1f1f3; }
 @media (min-width: 721px) and (max-width: 980px) {
   .transport { gap: 0; }
-  .transport .icon-button, .transport .main-play { width: 48px; height: 56px; }
+  .transport .icon-button { width: 40px; height: 44px; }
 }
 @media (max-width: 980px) { .volume-control { display: none; } }
 .timeline { gap: 12px; margin-top: 4px; font-size: 11px; }
-.timeline time { min-width: 30px; color: #aaa3b5; }
+.timeline time { min-width: 30px; color: #929098; }
 /* Keep the visual rail slim while making the actual input easy to grab. */
 .timeline input, .timeline input:hover {
   height: 20px;
   background: transparent;
   border-radius: 999px;
-  --rail: linear-gradient(90deg, #cfb9ee var(--fill, 0%), #ffffff24 var(--fill, 0%));
+  --rail: linear-gradient(90deg, #d8d7dd var(--fill, 0%), #ffffff24 var(--fill, 0%));
 }
-.timeline input::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: var(--rail); }
-.timeline input::-moz-range-track { height: 4px; border-radius: 999px; background: var(--rail); }
+.timeline input::-webkit-slider-runnable-track { height: 3px; border-radius: 999px; background: var(--rail); }
+.timeline input::-moz-range-track { height: 3px; border-radius: 999px; background: var(--rail); }
 .timeline input::-webkit-slider-thumb {
-  width: 10px; height: 10px; margin-top: -3px; opacity: 1;
-  background: #e7d8fc; box-shadow: 0 0 0 3px #cfb9ee12;
-  transition: box-shadow 180ms ease;
+  width: 10px; height: 10px; margin-top: -3.5px; opacity: 0;
+  background: #f1f1f3; box-shadow: none;
+  transition: opacity 180ms ease;
 }
 .timeline input::-moz-range-thumb {
-  width: 10px; height: 10px; opacity: 1; border: 0;
-  background: #e7d8fc; box-shadow: 0 0 0 3px #cfb9ee12;
-  transition: box-shadow 180ms ease;
+  width: 10px; height: 10px; opacity: 0; border: 0;
+  background: #f1f1f3; box-shadow: none;
+  transition: opacity 180ms ease;
 }
-.timeline input:hover::-webkit-slider-thumb { box-shadow: 0 0 0 5px #cfb9ee22; }
-.timeline input:hover::-moz-range-thumb { box-shadow: 0 0 0 5px #cfb9ee22; }
+.timeline input:hover::-webkit-slider-thumb, .timeline input:focus-visible::-webkit-slider-thumb { opacity: 1; }
+.timeline input:hover::-moz-range-thumb, .timeline input:focus-visible::-moz-range-thumb { opacity: 1; }
 .player button:focus-visible, .timeline input:focus-visible { outline: 2px solid #dcc5ff; outline-offset: 4px; }
 .album-card, .track-row { transition: background 220ms ease; }
 .mobile-nav { border-color: #ffffff09; }
 .mobile-nav button.active>span:after { background: transparent; }
 @media (max-width: 720px) {
   .player { background: linear-gradient(115deg, #2c2735, #211f28); border: 1px solid #ffffff16; border-radius: 20px!important; box-shadow: 0 8px 24px #0005; }
-  .transport .main-play, .transport .icon-button { width: 48px; height: 48px; }
-  .transport .icon-button:not(.secondary) svg { width: 42px; height: 42px; }
+  .transport { gap: 2px; }
+  .transport .main-play { width: 48px; height: 48px; }
+  .transport .icon-button { width: 44px; height: 48px; }
+  .transport .icon-button:not(.secondary) svg { width: 28px; height: 28px; }
   .transport-glyph, .transport-glyph svg { width: 42px; height: 42px; }
   .timeline { bottom: 0; }
   .timeline input, .timeline input:hover { height: 20px; }
   .timeline input::-webkit-slider-runnable-track { height: 3px; }
   .timeline input::-moz-range-track { height: 3px; }
-  .timeline input::-webkit-slider-thumb { margin-top: -3.5px; }
+  .timeline input::-webkit-slider-thumb { margin-top: -3.5px; opacity: 1; }
+  .timeline input::-moz-range-thumb { opacity: 1; }
   .search-trigger { background: transparent; }
 }
 @media (prefers-reduced-motion: reduce) {
