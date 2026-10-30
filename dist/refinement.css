@@ -451,3 +451,43 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   .timeline input::-webkit-slider-thumb { transition: none; }
   .timeline input::-moz-range-thumb { transition: none; }
 }
+
+
+/* Frontend corrections — 30 October 2026. */
+:root { --accent: #b7a2e8; }
+
+/* Keep the explicit clear button; suppress WebKit's second clear affordance. */
+#search-input::-webkit-search-cancel-button,
+#search-input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+#search-input { min-width: 0; }
+.large-search .icon-button, .large-search .text-button { flex-shrink: 0; }
+
+/* YouTube song thumbnails pad square artwork to 16:9. Crop from the centre. */
+.track-thumb { overflow: hidden; }
+.track-thumb img, .mini-art-button img, .fullscreen-cover > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Remove the remaining inherited green accents from the original light theme. */
+:root { accent-color: var(--accent); }
+a:focus-visible { outline-color: var(--accent); }
+.equalizer i { background: var(--accent); }
+.large-search svg, .search-trigger svg { color: #aaa3b5; }
+.large-heart svg { fill: var(--accent); stroke: var(--accent); }
+.small-modal input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px #b7a2e833;
+}
+.large-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px #b7a2e833;
+}
+.audio-quality { border-color: #b7a2e840; }
+.profile-stats span, .notice-item small { color: #aaa3b5; }
+.dialog-icon { background: #b7a2e81a; color: var(--accent); }
+
+/* No native press-and-hold callout on the player controls. */
+.player button { -webkit-touch-callout: none; user-select: none; }
