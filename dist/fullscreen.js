@@ -3,7 +3,7 @@ export function createCoverWave(canvas, readState) {
   const ctx=canvas.getContext('2d');
   if(!ctx)return {destroy(){}};
   const motion=matchMedia('(prefers-reduced-motion: reduce)');
-  const bins=new Uint8Array(64);
+  let bins=new Uint8Array(512);
   let frame=0,last=0,energy=0,size=0,disposed=false;
   const resize=new ResizeObserver(()=>{size=canvas.clientWidth;const dpr=Math.min(devicePixelRatio||1,2);canvas.width=size*dpr;canvas.height=size*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);draw(0,true);});
   function draw(now,force=false) {
@@ -15,13 +15,13 @@ export function createCoverWave(canvas, readState) {
     const state=readState();
     let target=0;
     if(state.playing&&!motion.matches){
-      if(state.analyser&&!state.live){state.analyser.getByteFrequencyData(bins);target=bins.slice(1,14).reduce((a,b)=>a+b,0)/(13*255);}
-      else target=.22+.32*Math.pow(Math.max(0,Math.sin(state.time*Math.PI*2*1.4)),5);
+      if(state.analyser){if(bins.length!==state.analyser.frequencyBinCount)bins=new Uint8Array(state.analyser.frequencyBinCount);state.analyser.getByteFrequencyData(bins);target=bins.slice(1,14).reduce((a,b)=>a+b,0)/(13*255);}
+
     }
     energy+=(target-energy)*.18;
     ctx.clearRect(0,0,size,size);
     const center=size/2,radius=size*.414;
-    const phase=motion.matches?0:state.time;
+    const phase=motion.matches||!state.analyser?0:state.time;
     for(let layer=0;layer<3;layer++){
       ctx.beginPath();
       for(let i=0;i<=240;i++){
@@ -36,7 +36,7 @@ export function createCoverWave(canvas, readState) {
     // Small radial lights give the ring texture without a dense equalizer cage.
     for(let i=0;i<96;i++){
       const a=i/96*Math.PI*2;
-      const band=state.playing&&!motion.matches&&!state.live?bins[i%32]/255:energy;
+      const band=state.playing&&!motion.matches&&state.analyser?bins[i%32]/255:energy;
       const r=radius+size*.052;
       const length=size*(.002+band*.016)*(1+.5*Math.sin(a*9+phase));
       ctx.beginPath();ctx.moveTo(center+Math.cos(a)*r,center+Math.sin(a)*r);ctx.lineTo(center+Math.cos(a)*(r+length),center+Math.sin(a)*(r+length));ctx.strokeStyle=`rgba(205,183,244,${.15+energy*.3})`;ctx.lineWidth=1.3;ctx.stroke();

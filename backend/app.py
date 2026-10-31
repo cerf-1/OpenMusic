@@ -13,10 +13,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from resolver import resolve, search, ResolveError
+from audio_relay import register_audio, relay_audio
 
 log = logging.getLogger('openmusic')
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:4173', 'http://127.0.0.1:4173'], allow_methods=['POST'], allow_headers=['Content-Type'])
+app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:4173', 'http://127.0.0.1:4173'], allow_methods=['POST', 'GET'], allow_headers=['Content-Type', 'Range'], expose_headers=['Content-Length', 'Content-Range', 'Accept-Ranges'])
 
 
 class ResolveRequest(BaseModel):
@@ -98,6 +99,7 @@ def run_resolve(query, video_id, timeout=30, page=None):
 async def resolve_endpoint(body: ResolveRequest):
     kind, result = await asyncio.to_thread(run_resolve, body.query, body.video_id)
     if kind == 'ok':
+        result['audio_path'] = register_audio(result['stream_url'])
         return JSONResponse(result, headers={'Cache-Control': 'no-store'})
     code, message = result
     return error(code, message, 404 if code == 'TRACK_NOT_FOUND' else 504 if code == 'RESOLVE_TIMEOUT' else 502)
@@ -123,3 +125,8 @@ async def search_endpoint(body: SearchRequest):
         return JSONResponse(result, headers={'Cache-Control': 'no-store'})
     code, message = result
     return error(code, message, 504 if code == 'RESOLVE_TIMEOUT' else 502)
+
+
+@app.get('/api/v1/audio/{token}')
+async def audio_endpoint(token: str, request: Request):
+    return await relay_audio(token, request)

@@ -147,3 +147,40 @@ test('an earlier Play on the same track cannot complete a later resume', async (
   assert.equal(engine.audio.plays,1);
   assert.equal(engine.audio.currentTime,20);
 });
+
+test('relay audio uses one CORS graph, preserves controls and isolates legacy direct audio', async()=>{
+  const OriginalContext=globalThis.AudioContext;
+  let sources=0,contexts=0;
+  class Context {
+    constructor(){contexts++;this.state='suspended';this.destination={};}
+    createAnalyser(){return {fftSize:0,smoothingTimeConstant:0,connect(){}};}
+    createMediaElementSource(audio){sources++;assert.equal(audio.crossOrigin,'anonymous');return {connect(){}};}
+    resume(){this.state='running';return Promise.resolve();}
+  }
+  globalThis.AudioContext=Context;
+  try{
+    globalThis.fetch=async()=>({ok:true,json:async()=>({stream_url:'https://direct.example/audio',audio_path:'/api/v1/audio/opaque_handle'})});
+    let paused=0;
+    const engine=new AudioEngine(()=>{},()=>{},()=>{},()=>{paused++;});
+    const track={video_id:'VALID_ID_11'};
+    await engine.play(track,0);
+    const analysed=engine.audio;
+    assert.equal(analysed.src,'http://127.0.0.1:8000/api/v1/audio/opaque_handle');
+    assert.ok(engine.getAnalyser());
+    engine.pause();await engine.play(track,9);engine.setVolume(.3);
+    assert.equal(engine.audio.currentTime,9);assert.equal(engine.audio.volume,.3);
+    assert.equal(contexts,1);assert.equal(sources,1);
+    await engine.play({video_id:'OTHER_ID_11',stream_url:'legacy'},0);
+    assert.notEqual(engine.audio,analysed);assert.equal(engine.audio.crossOrigin,undefined);
+    assert.equal(engine.getAnalyser(),null);
+    analysed.dispatchEvent(new Event('pause'));assert.equal(paused,0);
+    await engine.play(track,10);assert.equal(engine.audio,analysed);assert.equal(sources,1);
+  }finally{globalThis.AudioContext=OriginalContext;}
+});
+
+test('an untrusted audio_path cannot replace the resolved stream',async()=>{
+ globalThis.fetch=async()=>({ok:true,json:async()=>({stream_url:'safe',audio_path:'//evil.example/audio'})});
+ const engine=new AudioEngine(()=>{},()=>{});
+ const track={video_id:'VALID_ID_11'};await engine.play(track,0);
+ assert.equal(engine.audio.src,'safe');assert.equal(track.audio_path,null);
+});

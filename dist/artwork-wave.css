@@ -1,0 +1,7 @@
+/* A close-fitting audio contour: enough breathing room for the cover, not a ring. */
+.player .mini-art-button{position:relative;overflow:visible;isolation:isolate;box-shadow:none;flex-shrink:0}
+.player .mini-art-button img{position:relative;z-index:1;box-shadow:0 3px 12px #0003,0 0 0 1px #ffffff12;pointer-events:none}
+.mini-art-wave{position:absolute;left:-16px;top:-16px;width:calc(100% + 32px);height:calc(100% + 32px);pointer-events:none;z-index:0}
+.player .now-playing-info{margin-left:16px}
+@media(max-width:720px){.mini-art-wave{left:-12px;top:-12px;width:calc(100% + 24px);height:calc(100% + 24px)}.player .now-playing-info{margin-left:10px}}
+@media(prefers-reduced-motion:reduce){.mini-art-wave{opacity:.5}}
