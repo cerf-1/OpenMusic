@@ -1,4 +1,4 @@
-import { DemoAudioEngine } from './audio.js';
+import { DemoAudioEngine } from './audio.js?v=2';
 import { API_BASE } from './config.js';
 
 export async function resolveTrack(body, signal) {

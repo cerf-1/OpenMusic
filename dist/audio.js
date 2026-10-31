@@ -56,6 +56,10 @@ export class DemoAudioEngine {
     compressor.release.value = .24;
     compressor.connect(this._master);
     this._master.connect(context.destination);
+    this._analyser = context.createAnalyser();
+    this._analyser.fftSize = 128;
+    this._analyser.smoothingTimeConstant = .82;
+    this._master.connect(this._analyser);
     this._compressor = compressor;
 
     // A deterministic noise buffer doubles as percussion material and reverb.
