@@ -8,6 +8,13 @@ export async function resolveTrack(body, signal) {
   return data;
 }
 
+export async function searchTracks(body, signal) {
+  const response = await fetch(`${API_BASE}/api/v1/search`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal});
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'Search failed. Try again.');
+  return data;
+}
+
 export class AudioEngine {
   constructor(onEnded, onError, onPlaying = () => {}) {
     this.demo = new DemoAudioEngine();
@@ -29,9 +36,16 @@ export class AudioEngine {
       ++this.generation;
       this.demo.pause(); this.audio.pause();
       this.track = track; this.refreshed = false;
-      if (track.video_id) this.audio.src = track.stream_url;
     }
     if (!track.video_id) return this.demo.play(track.engine, position);
+    if (!track.stream_url) {
+      const generation=this.generation;
+      const data=await resolveTrack({video_id:track.video_id});
+      if(generation!==this.generation || this.track!==track || !this.desiredPlaying)return;
+      Object.assign(track,{stream_url:data.stream_url,duration:data.duration_seconds,cover:data.cover_link});
+    }
+    if(!this.desiredPlaying)return;
+    if(this.audio.src!==track.stream_url)this.audio.src=track.stream_url;
     if (Number.isFinite(position) && Math.abs(this.audio.currentTime-position) > 1) {
       try { this.audio.currentTime = position; } catch {}
     }

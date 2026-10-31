@@ -11,8 +11,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, model_validator
-from resolver import resolve, ResolveError
+from pydantic import BaseModel, ConfigDict, model_validator, Field
+from resolver import resolve, search, ResolveError
 
 log = logging.getLogger('openmusic')
 app = FastAPI()
@@ -46,11 +46,11 @@ async def invalid_request(request: Request, exc: RequestValidationError):
     return error('INVALID_REQUEST', 'Некорректный запрос', 422)
 
 
-def worker(conn, query, video_id):
+def worker(conn, query, video_id, page=None):
     if os.name == 'posix':
         os.setsid()
     try:
-        conn.send(('ok', resolve(query, video_id)))
+        conn.send(('ok', search(query, page) if page is not None else resolve(query, video_id)))
     except ResolveError as exc:
         log.warning('Resolve failed: %s', exc.code)
         conn.send(('error', (exc.code, exc.message)))
@@ -61,10 +61,10 @@ def worker(conn, query, video_id):
         conn.close()
 
 
-def run_resolve(query, video_id, timeout=30):
+def run_resolve(query, video_id, timeout=30, page=None):
     ctx = multiprocessing.get_context('spawn')
     parent, child = ctx.Pipe(duplex=False)
-    process = ctx.Process(target=worker, args=(child, query, video_id))
+    process = ctx.Process(target=worker, args=(child, query, video_id, page))
     start = time.monotonic()
     try:
         process.start()
@@ -101,3 +101,25 @@ async def resolve_endpoint(body: ResolveRequest):
         return JSONResponse(result, headers={'Cache-Control': 'no-store'})
     code, message = result
     return error(code, message, 404 if code == 'TRACK_NOT_FOUND' else 504 if code == 'RESOLVE_TIMEOUT' else 502)
+
+
+class SearchRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    query: str
+    page: int = Field(default=1, ge=1, le=100)
+
+    @model_validator(mode='after')
+    def validate_query(self):
+        self.query = self.query.strip()
+        if not 1 <= len(self.query) <= 300:
+            raise ValueError('invalid query')
+        return self
+
+
+@app.post('/api/v1/search')
+async def search_endpoint(body: SearchRequest):
+    kind, result = await asyncio.to_thread(run_resolve, body.query, None, page=body.page)
+    if kind == 'ok':
+        return JSONResponse(result, headers={'Cache-Control': 'no-store'})
+    code, message = result
+    return error(code, message, 504 if code == 'RESOLVE_TIMEOUT' else 502)

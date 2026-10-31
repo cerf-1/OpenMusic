@@ -92,3 +92,44 @@ def resolve(query=None, video_id=None):
         raise ResolveError('RESOLVE_FAILED', 'Недостаточно данных о треке')
     return {'video_id': video_id, 'title': title, 'artist': info.get('artist') or info.get('uploader') or None,
             'duration_seconds': duration, 'stream_url': choose_stream(info.get('formats')), 'cover_link': choose_cover(info)}
+
+
+PAGE_SIZE = 10
+
+
+def search(query, page=1):
+    """Fetch only a bounded flat metadata window, never resolve audio here.
+
+    yt-dlp may traverse preceding upstream pages for an offset; it stops after
+    this window plus one lookahead item, rather than enumerating all results.
+    """
+    import yt_dlp
+    from yt_dlp.utils import DownloadError
+    start = (page - 1) * PAGE_SIZE + 1
+    options = {'quiet': True, 'no_warnings': True, 'skip_download': True,
+               'socket_timeout': 10, 'logger': SafeLogger(),
+               'extract_flat': 'in_playlist', 'lazy_playlist': True,
+               'playliststart': start, 'playlistend': start + PAGE_SIZE}
+    try:
+        with yt_dlp.YoutubeDL(options) as ydl:
+            result = ydl.extract_info('https://music.youtube.com/search?q=' + quote(query, safe='') + '#songs', download=False)
+            entries = list((result or {}).get('entries') or [])
+    except DownloadError:
+        raise ResolveError('SEARCH_FAILED', 'Не удалось выполнить поиск. Попробуйте ещё раз.') from None
+    items = []
+    for entry in entries[:PAGE_SIZE]:
+        if not isinstance(entry, dict) or not ID.fullmatch(str(entry.get('id', ''))):
+            continue
+        title = entry.get('track') or entry.get('title')
+        if not isinstance(title, str) or not title.strip():
+            continue
+        duration = entry.get('duration')
+        duration = duration if isinstance(duration, (int, float)) and math.isfinite(duration) and duration > 0 else None
+        try:
+            cover = choose_cover(entry)
+        except ResolveError:
+            cover = None
+        items.append({'video_id': entry['id'], 'title': title,
+                      'artist': entry.get('artist') or entry.get('uploader') or entry.get('channel') or None,
+                      'duration_seconds': duration, 'cover_link': cover})
+    return {'items': items, 'page': page, 'has_more': page < 100 and len(entries) > PAGE_SIZE}

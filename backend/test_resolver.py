@@ -36,3 +36,43 @@ def test_validation_and_errors(monkeypatch):
         assert response.headers['cache-control'] == 'no-store'
     response = client.options('/api/v1/resolve', headers={'Origin':'http://localhost:4173', 'Access-Control-Request-Method':'POST', 'Access-Control-Request-Headers':'content-type'})
     assert response.status_code == 200
+
+
+def test_search_window_is_flat_and_bounded(monkeypatch):
+    import sys
+    import types
+    from resolver import search
+    calls = []
+    class FakeYDL:
+        def __init__(self, options):
+            self.options = options
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def extract_info(self, url, download=False):
+            calls.append((url, self.options))
+            return {'entries': [{'id': f'{i:011d}', 'title': f'Song {i}', 'duration': 120} for i in range(11)]}
+    monkeypatch.setitem(sys.modules, 'yt_dlp', types.SimpleNamespace(YoutubeDL=FakeYDL))
+    monkeypatch.setitem(sys.modules, 'yt_dlp.utils', types.SimpleNamespace(DownloadError=RuntimeError))
+    result = search('song & artist', 2)
+    assert len(result['items']) == 10 and result['has_more'] is True
+    assert len(calls) == 1  # No per-track requests or stream extraction.
+    url, options = calls[0]
+    assert 'song%20%26%20artist' in url
+    assert options['playliststart'] == 11 and options['playlistend'] == 21
+    assert options['lazy_playlist'] and options['extract_flat'] == 'in_playlist'
+
+
+def test_search_api_validation_and_empty_page(monkeypatch):
+    client = TestClient(app.app)
+    for data in [{}, {'query':' '}, {'query':'song','page':0}, {'query':'song','page':101}, {'query':'song','page':True}, {'query':'song','page':'2'}, {'query':'song','extra':1}]:
+        assert client.post('/api/v1/search', json=data).status_code == 422
+    calls = []
+    def fake(query, video_id, **kwargs):
+        calls.append((query, video_id, kwargs))
+        return 'ok', {'items': [], 'page': 3, 'has_more': False}
+    monkeypatch.setattr(app, 'run_resolve', fake)
+    response = client.post('/api/v1/search', json={'query':' song ', 'page':3})
+    assert response.json() == {'items': [], 'page': 3, 'has_more': False}
+    assert calls == [('song', None, {'page':3})]

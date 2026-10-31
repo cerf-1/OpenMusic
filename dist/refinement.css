@@ -5,8 +5,8 @@
   --ink: #f7f7f8;
   --muted: #aaaab0;
   --line: #34343a;
-  --lime: #b7a2e8;
-  --lime-dark: #ded4f5;
+  --accent: #b7a2e8;
+  --accent-soft: #ded4f5;
   --sidebar: 272px;
 }
 body { background: #0d0d0f; }
@@ -491,3 +491,16 @@ a:focus-visible { outline-color: var(--accent); }
 
 /* No native press-and-hold callout on the player controls. */
 .player button { -webkit-touch-callout: none; user-select: none; }
+
+/* One lavender palette across navigation, track states and branding. */
+.wordmark, .user-profile>span:last-child, .text-button:hover { color: var(--accent); }
+.track-row.current { border-color: var(--accent); }
+.nav-active-dot, .notifications i { background: var(--accent); }
+.album-play { display: grid; place-items: center; width: 56px; height: 56px; border: 0; border-radius: 12px; background: transparent; color: #f1f1f3; box-shadow: none; }
+.album-play:hover { background: transparent; color: #fff; }
+.card-play.album-play { right: 8px; bottom: 8px; }
+.card-play .transport-glyph svg { width: 48px; height: 48px; }
+.album-play[data-playing="true"] { opacity: 1; transform: none; }
+.search-pagination { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 24px 0; color: var(--muted); font-size: 13px; }
+button:disabled { opacity: .4; cursor: default; }
+@media (max-width: 720px) { .search-pagination { gap: 16px; } }
