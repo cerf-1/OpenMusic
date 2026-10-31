@@ -22,11 +22,12 @@ export class AudioEngine {
     this.audio.preload = 'metadata';
     this.audio.volume = .65;
     this.track = null;
+    this.pending = new Map();
     this.generation = 0;
     this.refreshed = false;
     this.desiredPlaying = false;
     this.onError = onError;
-    this.audio.addEventListener('playing', () => { if (this.track?.video_id) onPlaying(); });
+    this.audio.addEventListener('playing', () => { if (this.track?.video_id && this.desiredPlaying) onPlaying(); });
     this.audio.addEventListener('ended', () => { if (this.track?.video_id) onEnded(); });
     this.audio.addEventListener('error', () => this.refresh());
   }
@@ -38,18 +39,30 @@ export class AudioEngine {
       this.track = track; this.refreshed = false;
     }
     if (!track.video_id) return this.demo.play(track.engine, position);
-    if (!track.stream_url) {
-      const generation=this.generation;
-      const data=await resolveTrack({video_id:track.video_id});
-      if(generation!==this.generation || this.track!==track || !this.desiredPlaying)return;
-      Object.assign(track,{stream_url:data.stream_url,duration:data.duration_seconds,cover:data.cover_link});
-    }
+    const generation=this.generation;
+    await this.prepare(track);
+    if(generation!==this.generation || this.track!==track)return;
     if(!this.desiredPlaying)return;
     if(this.audio.src!==track.stream_url)this.audio.src=track.stream_url;
     if (Number.isFinite(position) && Math.abs(this.audio.currentTime-position) > 1) {
       try { this.audio.currentTime = position; } catch {}
     }
     return this.audio.play();
+  }
+  async prepare(track) {
+    if (!track.video_id || track.stream_url) return track;
+    let pending=this.pending.get(track.video_id);
+    if (!pending) {
+      pending=resolveTrack({video_id:track.video_id});
+      this.pending.set(track.video_id,pending);
+      pending.finally(()=>{if(this.pending.get(track.video_id)===pending)this.pending.delete(track.video_id);}).catch(()=>{});
+    }
+    const data=await pending;
+    track.stream_url=data.stream_url;
+    if(data.duration_seconds>0)track.duration=data.duration_seconds;
+    if(data.cover_link)track.cover=data.cover_link;
+    if(data.artist)track.artist=data.artist;
+    return track;
   }
   pause() { this.desiredPlaying = false; this.demo.pause(); this.audio.pause(); }
   seek(seconds) { if (this.track?.video_id) { try { this.audio.currentTime = seconds; } catch {} } else this.demo.seek(seconds); }

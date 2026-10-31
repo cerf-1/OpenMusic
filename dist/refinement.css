@@ -504,3 +504,17 @@ a:focus-visible { outline-color: var(--accent); }
 .search-pagination { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 24px 0; color: var(--muted); font-size: 13px; }
 button:disabled { opacity: .4; cursor: default; }
 @media (max-width: 720px) { .search-pagination { gap: 16px; } }
+
+/* Loading stays inside the controls; no floating player messages. */
+.main-play[aria-busy="true"] { position: relative; }
+.main-play[aria-busy="true"] .transport-glyph { opacity: 0; }
+.main-play[aria-busy="true"]::after, .track-row[aria-busy="true"] .track-number::after {
+  content: ''; width: 18px; height: 18px; border: 2px solid #b7a2e840;
+  border-top-color: var(--accent); border-radius: 50%; animation: audio-loading .8s linear infinite;
+}
+.main-play[aria-busy="true"]::after { position: absolute; inset: 0; margin: auto; width: 26px; height: 26px; }
+.track-row[aria-busy="true"] .track-number { font-size: 0; display: grid; place-items: center; }
+@keyframes audio-loading { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .main-play[aria-busy="true"]::after, .track-row[aria-busy="true"] .track-number::after { animation: none; border-style: dotted; }
+}

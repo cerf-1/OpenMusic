@@ -78,3 +78,30 @@ test('a pending first resolve cannot start audio after pause or track change', a
   assert.equal(engine.audio.src,'new');
   assert.equal(engine.audio.plays,1);
 });
+
+test('warming the first result shares its request with Play and never starts audio', async () => {
+  let finish, requests=0;
+  globalThis.fetch=()=>{requests++;return new Promise(resolve=>finish=resolve);};
+  const engine=new AudioEngine(()=>{},()=>{});
+  const track={video_id:'VALID_ID_11',cover:'existing-cover'};
+  const warm=engine.prepare(track);
+  assert.equal(engine.audio.plays,0);
+  const play=engine.play(track,0);
+  assert.equal(requests,1);
+  finish({ok:true,json:async()=>({stream_url:'https://fresh.example/audio',duration_seconds:200,artist:'Artist'})});
+  await Promise.all([warm,play]);
+  assert.equal(engine.audio.plays,1);
+  assert.equal(track.cover,'existing-cover');
+  assert.equal(track.artist,'Artist');
+});
+
+test('a failed warmup is released so Play can retry', async () => {
+  let requests=0;
+  globalThis.fetch=async()=>{requests++;if(requests===1)throw new Error('offline');return {ok:true,json:async()=>({stream_url:'https://fresh.example/audio'})};};
+  const engine=new AudioEngine(()=>{},()=>{});
+  const track={video_id:'VALID_ID_11'};
+  await assert.rejects(engine.prepare(track));
+  await engine.play(track,0);
+  assert.equal(requests,2);
+  assert.equal(engine.audio.plays,1);
+});

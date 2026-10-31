@@ -57,6 +57,7 @@ def test_search_window_is_flat_and_bounded(monkeypatch):
     monkeypatch.setitem(sys.modules, 'yt_dlp.utils', types.SimpleNamespace(DownloadError=RuntimeError))
     result = search('song & artist', 2)
     assert len(result['items']) == 10 and result['has_more'] is True
+    assert result['items'][0]['cover_link'] == 'https://i.ytimg.com/vi/00000000000/hqdefault.jpg'
     assert len(calls) == 1  # No per-track requests or stream extraction.
     url, options = calls[0]
     assert 'song%20%26%20artist' in url

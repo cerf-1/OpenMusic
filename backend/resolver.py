@@ -128,7 +128,7 @@ def search(query, page=1):
         try:
             cover = choose_cover(entry)
         except ResolveError:
-            cover = None
+            cover = f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
         items.append({'video_id': entry['id'], 'title': title,
                       'artist': entry.get('artist') or entry.get('uploader') or entry.get('channel') or None,
                       'duration_seconds': duration, 'cover_link': cover})
