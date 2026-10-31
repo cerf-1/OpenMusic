@@ -43,6 +43,7 @@ def test_search_window_is_flat_and_bounded(monkeypatch):
     import types
     from resolver import search
     calls = []
+    monkeypatch.setattr('resolver.register_music_search', lambda ydl: None)
     class FakeYDL:
         def __init__(self, options):
             self.options = options
@@ -57,7 +58,7 @@ def test_search_window_is_flat_and_bounded(monkeypatch):
     monkeypatch.setitem(sys.modules, 'yt_dlp.utils', types.SimpleNamespace(DownloadError=RuntimeError))
     result = search('song & artist', 2)
     assert len(result['items']) == 10 and result['has_more'] is True
-    assert result['items'][0]['cover_link'] == 'https://i.ytimg.com/vi/00000000000/hqdefault.jpg'
+    assert result['items'][0]['cover_link'] == 'https://i.ytimg.com/vi/00000000000/mqdefault.jpg'
     assert len(calls) == 1  # No per-track requests or stream extraction.
     url, options = calls[0]
     assert 'song%20%26%20artist' in url
@@ -77,3 +78,28 @@ def test_search_api_validation_and_empty_page(monkeypatch):
     response = client.post('/api/v1/search', json={'query':' song ', 'page':3})
     assert response.json() == {'items': [], 'page': 3, 'has_more': False}
     assert calls == [('song', None, {'page':3})]
+
+
+def test_music_search_preserves_artists_and_square_cover():
+    from resolver import music_search_metadata
+    def artist(text):
+        return {'text': text, 'navigationEndpoint': {'browseEndpoint': {
+            'browseEndpointContextSupportedConfigs': {'browseEndpointContextMusicConfig': {'pageType': 'MUSIC_PAGE_TYPE_ARTIST'}}}}}
+    image = 'https://yt3.googleusercontent.com/album=w120-h120-l90-rj'
+    renderer = {'flexColumns': [{}, {'musicResponsiveListItemFlexColumnRenderer': {'text': {
+        'runs': [artist('Daft Punk'), {'text': ' & '}, artist('Julian Casablancas'),
+                 {'text': ' • '}, {'text': 'Random Access Memories'}, {'text': '5:38'}]}}}],
+        'thumbnail': {'musicThumbnailRenderer': {'thumbnail': {'thumbnails': [{'url': image, 'width': 120, 'height': 120}]}}}}
+    metadata = music_search_metadata(renderer)
+    assert metadata['artist'] == 'Daft Punk, Julian Casablancas'
+    assert metadata['duration'] == 338
+    assert choose_cover(metadata) == image
+    assert music_search_metadata({}) == {'artist': None, 'duration': None, 'thumbnails': []}
+    assert not valid_url('https://yt3.googleusercontent.com.evil/album', cover=True)
+
+
+def test_music_search_artist_without_profile_link():
+    from resolver import music_search_metadata
+    renderer = {'flexColumns': [{}, {'musicResponsiveListItemFlexColumnRenderer': {'text': {'runs': [
+        {'text': 'Ruben Dunn'}, {'text': ' • '}, {'text': 'Instant Crush'}, {'text': ' • '}, {'text': '2:48'}]}}}]}
+    assert music_search_metadata(renderer)['artist'] == 'Ruben Dunn'

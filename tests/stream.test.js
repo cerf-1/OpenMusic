@@ -2,9 +2,9 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
 class FakeAudio extends EventTarget {
-  constructor() { super(); this.currentTime=0; this.duration=300; this.volume=1; this.plays=0; }
-  play() { this.plays++; return Promise.resolve(); }
-  pause() {}
+  constructor() { super(); this.currentTime=0; this.duration=300; this.volume=1; this.plays=0; this.paused=true; this.ended=false; }
+  play() { this.plays++; this.paused=false; this.dispatchEvent(new Event('playing')); return Promise.resolve(); }
+  pause() { this.paused=true; this.dispatchEvent(new Event('pause')); }
   load() {}
 }
 globalThis.Audio = FakeAudio;
@@ -104,4 +104,46 @@ test('a failed warmup is released so Play can retry', async () => {
   await engine.play(track,0);
   assert.equal(requests,2);
   assert.equal(engine.audio.plays,1);
+});
+
+
+test('external pause and resume synchronize actual playback', async () => {
+  let playing=0, paused=0;
+  const engine=new AudioEngine(()=>{},()=>{},()=>playing++,()=>paused++);
+  await engine.play({video_id:'VALID_ID_11',stream_url:'audio'},0);
+  assert.equal(engine.isPlaying,true);
+  engine.audio.pause(); // Headset/OS pause, outside engine.pause().
+  assert.equal(engine.desiredPlaying,false);
+  assert.equal(engine.isPlaying,false);
+  assert.equal(paused,1);
+  await engine.audio.play();
+  assert.equal(engine.desiredPlaying,true);
+  assert.equal(playing,2);
+  engine.pause();
+  assert.equal(paused,1); // Intentional pause is already handled by the caller.
+});
+
+test('queued pause from the previous track cannot stop the new source', async () => {
+  let paused=0;
+  const engine=new AudioEngine(()=>{},()=>{},()=>{},()=>paused++);
+  await engine.play({video_id:'VALID_ID_11',stream_url:'old'},0);
+  await engine.play({video_id:'OTHER_ID_11',stream_url:'new'},0);
+  engine.audio.dispatchEvent(new Event('pause'));
+  assert.equal(engine.isPlaying,true);
+  assert.equal(engine.desiredPlaying,true);
+  assert.equal(paused,0);
+});
+
+test('an earlier Play on the same track cannot complete a later resume', async () => {
+  let finish;
+  globalThis.fetch=()=>new Promise(resolve=>finish=resolve);
+  const engine=new AudioEngine(()=>{},()=>{});
+  const track={video_id:'VALID_ID_11'};
+  const first=engine.play(track,0);
+  engine.pause();
+  const resumed=engine.play(track,20);
+  finish({ok:true,json:async()=>({stream_url:'audio'})});
+  await Promise.all([first,resumed]);
+  assert.equal(engine.audio.plays,1);
+  assert.equal(engine.audio.currentTime,20);
 });

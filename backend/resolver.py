@@ -18,7 +18,7 @@ def valid_url(value, cover=False):
         host = u.hostname or ''
         return (u.scheme == 'https' and not u.username and not u.password
                 and u.port in (None, 443)
-                and (host == 'i.ytimg.com' if cover else host.endswith('.googlevideo.com') and u.path == '/videoplayback'))
+                and (host in ('i.ytimg.com', 'yt3.googleusercontent.com', 'lh3.googleusercontent.com', 'lh3.ggpht.com') if cover else host.endswith('.googlevideo.com') and u.path == '/videoplayback'))
     except (ValueError, TypeError):
         return False
 
@@ -94,6 +94,54 @@ def resolve(query=None, video_id=None):
             'duration_seconds': duration, 'stream_url': choose_stream(info.get('formats')), 'cover_link': choose_cover(info)}
 
 
+def music_search_metadata(renderer):
+    """Keep artwork and artists already present in the music search response.
+
+    yt-dlp 2026.10.26 drops these fields when building flat music entries.
+    This adapter does not fetch individual videos or resolve their streams.
+    """
+    columns = renderer.get('flexColumns') or []
+    artists, duration = [], None
+    for column in columns[1:]:
+        runs = column.get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs') or []
+        for run in runs:
+            browse = run.get('navigationEndpoint', {}).get('browseEndpoint', {})
+            page_type = browse.get('browseEndpointContextSupportedConfigs', {}).get('browseEndpointContextMusicConfig', {}).get('pageType')
+            text = run.get('text', '').strip()
+            if text and page_type == 'MUSIC_PAGE_TYPE_ARTIST' and text not in artists:
+                artists.append(text)
+            if re.fullmatch(r'\d+(?::\d{2}){1,2}', text):
+                duration = 0
+                for part in text.split(':'):
+                    duration = duration * 60 + int(part)
+    if not artists and len(columns) > 1:
+        runs = columns[1].get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs') or []
+        # Some artists have no browse link; the first metadata segment is still their name.
+        artist_text = ''.join(run.get('text', '') for run in runs).split(' • ', 1)[0].strip()
+        if artist_text and not re.fullmatch(r'\d+(?::\d{2}){1,2}', artist_text):
+            artists.append(artist_text)
+    thumbnails = renderer.get('thumbnail', {}).get('musicThumbnailRenderer', {}).get('thumbnail', {}).get('thumbnails') or []
+    return {'artist': ', '.join(artists) or None, 'duration': duration, 'thumbnails': thumbnails}
+
+
+def register_music_search(ydl):
+    from yt_dlp.extractor.youtube import YoutubeMusicSearchURLIE
+
+    class MusicSearchWithMetadata(YoutubeMusicSearchURLIE):
+        @classmethod
+        def ie_key(cls):
+            # Replace this one extractor within this YoutubeDL instance only.
+            return YoutubeMusicSearchURLIE.ie_key()
+
+        def _music_reponsive_list_entry(self, renderer):
+            entry = super()._music_reponsive_list_entry(renderer)
+            if entry and ID.fullmatch(str(entry.get('id', ''))):
+                entry.update({k: v for k, v in music_search_metadata(renderer).items() if v})
+            return entry
+
+    ydl.add_info_extractor(MusicSearchWithMetadata())
+
+
 PAGE_SIZE = 10
 
 
@@ -112,6 +160,7 @@ def search(query, page=1):
                'playliststart': start, 'playlistend': start + PAGE_SIZE}
     try:
         with yt_dlp.YoutubeDL(options) as ydl:
+            register_music_search(ydl)
             result = ydl.extract_info('https://music.youtube.com/search?q=' + quote(query, safe='') + '#songs', download=False)
             entries = list((result or {}).get('entries') or [])
     except DownloadError:
@@ -128,7 +177,7 @@ def search(query, page=1):
         try:
             cover = choose_cover(entry)
         except ResolveError:
-            cover = f"https://i.ytimg.com/vi/{entry['id']}/hqdefault.jpg"
+            cover = f"https://i.ytimg.com/vi/{entry['id']}/mqdefault.jpg"
         items.append({'video_id': entry['id'], 'title': title,
                       'artist': entry.get('artist') or entry.get('uploader') or entry.get('channel') or None,
                       'duration_seconds': duration, 'cover_link': cover})

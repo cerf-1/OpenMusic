@@ -16,7 +16,7 @@ export async function searchTracks(body, signal) {
 }
 
 export class AudioEngine {
-  constructor(onEnded, onError, onPlaying = () => {}) {
+  constructor(onEnded, onError, onPlaying = () => {}, onPaused = () => {}) {
     this.demo = new DemoAudioEngine();
     this.audio = new Audio();
     this.audio.preload = 'metadata';
@@ -27,18 +27,32 @@ export class AudioEngine {
     this.refreshed = false;
     this.desiredPlaying = false;
     this.onError = onError;
-    this.audio.addEventListener('playing', () => { if (this.track?.video_id && this.desiredPlaying) onPlaying(); });
+    this.audio.addEventListener('playing', () => {
+      if (this.track?.video_id && this.audio.src === this.track.stream_url && !this.audio.paused) {
+        this.desiredPlaying = true;
+        onPlaying();
+      }
+    });
+    this.audio.addEventListener('pause', () => {
+      // Ignore queued events from a previous source or an intentional engine pause.
+      if (this.track?.video_id && this.audio.src === this.track.stream_url && this.audio.paused && this.desiredPlaying && !this.audio.ended) {
+        this.desiredPlaying = false;
+        onPaused();
+      }
+    });
     this.audio.addEventListener('ended', () => { if (this.track?.video_id) onEnded(); });
     this.audio.addEventListener('error', () => this.refresh());
   }
+  get isPlaying() { return this.track?.video_id ? !this.audio.paused && !this.audio.ended : this.demo.isPlaying; }
   async play(track, position) {
-    this.desiredPlaying = true;
+    ++this.generation;
     if (this.track !== track) {
-      ++this.generation;
+      this.desiredPlaying = false;
       this.demo.pause(); this.audio.pause();
       this.track = track; this.refreshed = false;
     }
-    if (!track.video_id) return this.demo.play(track.engine, position);
+    if (!track.video_id) { this.desiredPlaying = true; return this.demo.play(track.engine, position); }
+    this.desiredPlaying = true;
     const generation=this.generation;
     await this.prepare(track);
     if(generation!==this.generation || this.track!==track)return;

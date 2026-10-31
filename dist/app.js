@@ -1,4 +1,4 @@
-import { AudioEngine, searchTracks } from './stream.js?v=3';
+import { AudioEngine, searchTracks } from './stream.js?v=4';
 import { createPlayerMaterial } from './liquid-glass.js?v=2';
 
 const playerMaterial = createPlayerMaterial(document.querySelector('.player'));
@@ -64,7 +64,7 @@ const heroSlides = [
   {album:1,title:'Drift into<br>blue hours.',description:'Easy rhythms for wherever you are.',tag:'BLUE HOURS',meta:'SOUNDS LIKE SUMMER'},
   {album:2,title:'After dark,<br>come alive.',description:'A late-night pulse for the city.',tag:'NIGHT PEOPLE',meta:'AFTER HOURS'}
 ];
-const engine = new AudioEngine(() => { if(state.repeat){seek(0);engine.play(tracks[state.current],0).catch(()=>toast('Tap Play to resume audio.'));}else if(state.queuePosition+1<state.queue.length)nextTrack();else {state.playing=false;state.position=tracks[state.current].duration;updatePlayback();} }, message => {state.loading=false;state.playing=false;updatePlayback();toast(message);}, () => {state.loading=false;state.playing=true;updatePlayback();});
+const engine = new AudioEngine(() => { if(state.repeat){seek(0);engine.play(tracks[state.current],0).catch(()=>toast('Tap Play to resume audio.'));}else if(state.queuePosition+1<state.queue.length)nextTrack();else {state.playing=false;state.position=tracks[state.current].duration;updatePlayback();} }, message => {state.loading=false;state.playing=false;updatePlayback();toast(message);}, () => {state.loading=false;state.playing=true;updatePlayback();}, () => {++state.sessionPlay;state.position=engine.getCurrentTime();state.loading=false;state.playing=false;updatePlayback();});
 let searchRequest = 0;
 function readSaved(key, fallback) { try { const result=JSON.parse(localStorage.getItem(key)); return result ?? fallback; } catch { return fallback; } }
 const savedLikes=readSaved('openmusic-likes',[]);
@@ -98,6 +98,9 @@ function updateSearchButton() {
   const input=document.querySelector('#search-input'), button=document.querySelector('#resolve-form [type="submit"]');
   if(button) button.disabled=searchBusy || !queryKey(input.value) || !!searchCache.get(queryKey(input.value))?.has(1);
 }
+function searchCover(url) {
+  return url?.replace(/^(https:\/\/i\.ytimg\.com\/vi\/[A-Za-z0-9_-]{11}\/)hqdefault\.jpg$/, '$1mqdefault.jpg');
+}
 function renderSearchPage(query, page, data) {
   shownSearch={query,page};
   const result=document.querySelector('#search-results');
@@ -120,7 +123,7 @@ async function resolveSearch(page=1, pagination=false) {
     if(request!==searchRequest || state.view!=='search' || !result.isConnected)return;
     const ids=data.items.map(item=>{
       let track=tracks.find(track=>track.video_id===item.video_id);
-      if(!track){const id=tracks.length; track={id,title:item.title,artist:item.artist || '',album:'YouTube',art:'hero.png',cover:item.cover_link || `https://i.ytimg.com/vi/${encodeURIComponent(item.video_id)}/hqdefault.jpg`,duration:item.duration_seconds || 0,genre:'',engine:0,video_id:item.video_id};tracks.push(track);}
+      if(!track){const id=tracks.length; track={id,title:item.title,artist:item.artist || '',album:'YouTube',art:'hero.png',cover:searchCover(item.cover_link) || `https://i.ytimg.com/vi/${encodeURIComponent(item.video_id)}/mqdefault.jpg`,duration:item.duration_seconds || 0,genre:'',engine:0,video_id:item.video_id};tracks.push(track);}
       return track.id;
     });
     if(!searchCache.has(key))searchCache.set(key,new Map());
@@ -137,9 +140,9 @@ async function resolveSearch(page=1, pagination=false) {
   } finally {if(request===searchRequest){searchBusy=false;result.removeAttribute('aria-busy');updateSearchButton();}}
 }
 function search(query) { const q=query.trim().toLocaleLowerCase();const result=document.querySelector('#search-results');if(!q){result.innerHTML=`<p class="search-meta">Browse by mood</p>${moodGrid()}`;return;}const matches=tracks.filter(t=>`${t.title} ${t.artist} ${t.album} ${t.genre} ${albums[t.engine].title} ${albums[t.engine].subtitle}`.toLocaleLowerCase().includes(q));result.innerHTML=`<p class="search-meta">${matches.length?`Found: ${matches.length} ${trackWord(matches.length)}`:'No results'}</p>${matches.length?trackTable(matches.map(t=>t.id)):`<div class="empty-state"><span>${icon('search')}</span><h2>Nothing found.</h2><p>Try Sora, Ocean, Ambient, or a mood below.</p></div>${moodGrid()}`}`; }
-function updatePlayback() { document.querySelectorAll('.album-play').forEach(el=>{const active=state.playing && albumIsCurrent(Number(el.dataset.id));el.dataset.playing=String(active);el.setAttribute('aria-label',`${active?'Pause':'Play'} ${albums[Number(el.dataset.id)].title}`);}); const t=tracks[state.current];playerMaterial.setTint('#b7a2e8');document.querySelector('#player-art').src=t.cover || `./assets/${t.art}`;document.querySelector('#player-title').textContent=t.title;document.querySelector('#player-artist').textContent=t.video_id ? (t.artist || 'YouTube') : `${t.artist} · ${t.album}`;document.querySelector('#duration').textContent=t.duration>0?formatTime(t.duration):'—:—';document.querySelector('#progress').max=t.duration;document.querySelectorAll('[data-action="toggle-play"]').forEach(el=>{if(el.classList.contains('main-play'))el.dataset.playing=String(state.playing);else el.innerHTML=icon(state.playing?'pause':'play');el.setAttribute('aria-busy',String(state.loading));el.setAttribute('aria-label',state.loading?'Cancel loading':state.playing?'Pause':'Play');});document.querySelectorAll('[data-action="shuffle"]').forEach(el=>{el.classList.toggle('active',state.shuffle);el.setAttribute('aria-pressed',String(state.shuffle));});document.querySelectorAll('[data-action="repeat"]').forEach(el=>{el.classList.toggle('active',state.repeat);el.setAttribute('aria-pressed',String(state.repeat));});document.querySelectorAll('[data-action="like-current"]').forEach(el=>{el.classList.toggle('liked',state.likes.has(state.current));el.setAttribute('aria-pressed',String(state.likes.has(state.current)));el.setAttribute('aria-label',state.likes.has(state.current)?'Remove current track from Liked Songs':'Add current track to Liked Songs');});document.body.classList.toggle('is-playing',state.playing);document.querySelectorAll('.track-row').forEach(row=>{const current=Number(row.dataset.track)===state.current;row.classList.toggle('current',current);row.setAttribute('aria-busy',String(current&&state.loading));const rowTrack=tracks[Number(row.dataset.track)];row.querySelector('img').src=rowTrack.cover || `./assets/${rowTrack.art}`;row.querySelector('.track-artist').textContent=rowTrack.artist || '';row.querySelector('.track-duration').textContent=rowTrack.duration>0?formatTime(rowTrack.duration):'—:—';const num=row.querySelector('.track-number');if(!num.dataset.number)num.dataset.number=num.textContent||'01';num.innerHTML=current&&state.playing?'<span class="equalizer"><i></i><i></i><i></i></span>':num.dataset.number;});updatePosition(); }
+function updatePlayback() { if('mediaSession' in navigator)navigator.mediaSession.playbackState=state.playing?'playing':'paused'; document.querySelectorAll('.album-play').forEach(el=>{const active=state.playing && albumIsCurrent(Number(el.dataset.id));el.dataset.playing=String(active);el.setAttribute('aria-label',`${active?'Pause':'Play'} ${albums[Number(el.dataset.id)].title}`);}); const t=tracks[state.current];playerMaterial.setTint('#b7a2e8');document.querySelector('#player-art').src=t.cover || `./assets/${t.art}`;document.querySelector('#player-title').textContent=t.title;document.querySelector('#player-artist').textContent=t.video_id ? (t.artist || 'YouTube') : `${t.artist} · ${t.album}`;document.querySelector('#duration').textContent=t.duration>0?formatTime(t.duration):'—:—';document.querySelector('#progress').max=t.duration;document.querySelectorAll('[data-action="toggle-play"]').forEach(el=>{if(el.classList.contains('main-play'))el.dataset.playing=String(state.playing);else el.innerHTML=icon(state.playing?'pause':'play');el.setAttribute('aria-busy',String(state.loading));el.setAttribute('aria-label',state.loading?'Cancel loading':state.playing?'Pause':'Play');});document.querySelectorAll('[data-action="shuffle"]').forEach(el=>{el.classList.toggle('active',state.shuffle);el.setAttribute('aria-pressed',String(state.shuffle));});document.querySelectorAll('[data-action="repeat"]').forEach(el=>{el.classList.toggle('active',state.repeat);el.setAttribute('aria-pressed',String(state.repeat));});document.querySelectorAll('[data-action="like-current"]').forEach(el=>{el.classList.toggle('liked',state.likes.has(state.current));el.setAttribute('aria-pressed',String(state.likes.has(state.current)));el.setAttribute('aria-label',state.likes.has(state.current)?'Remove current track from Liked Songs':'Add current track to Liked Songs');});document.body.classList.toggle('is-playing',state.playing);document.querySelectorAll('.track-row').forEach(row=>{const current=Number(row.dataset.track)===state.current;row.classList.toggle('current',current);row.setAttribute('aria-busy',String(current&&state.loading));const rowTrack=tracks[Number(row.dataset.track)];row.querySelector('img').src=rowTrack.cover || `./assets/${rowTrack.art}`;row.querySelector('.track-artist').textContent=rowTrack.artist || '';row.querySelector('.track-duration').textContent=rowTrack.duration>0?formatTime(rowTrack.duration):'—:—';const num=row.querySelector('.track-number');if(!num.dataset.number)num.dataset.number=num.textContent||'01';num.innerHTML=current&&state.playing?'<span class="equalizer"><i></i><i></i><i></i></span>':num.dataset.number;});updatePosition(); }
 function updatePosition() { const t=tracks[state.current];const position=Math.min(state.position,t.duration);const elapsed=formatTime(position);const remaining=`−${formatTime(t.duration-position)}`;for(const id of ['progress','full-progress']){const el=document.getElementById(id);if(el){if(Number(el.max)!==t.duration)el.max=t.duration || 1;el.disabled=t.duration<=0;el.value=position;el.style.setProperty('--fill',`${t.duration>0?position/t.duration*100:0}%`);const ariaText=`${elapsed} of ${formatTime(t.duration)}`;if(el.getAttribute('aria-valuetext')!==ariaText)el.setAttribute('aria-valuetext',ariaText);}}const miniElapsed=document.querySelector('#elapsed');if(miniElapsed.textContent!==elapsed)miniElapsed.textContent=elapsed;const fullElapsed=document.querySelector('#full-elapsed');if(fullElapsed&&fullElapsed.textContent!==elapsed)fullElapsed.textContent=elapsed;const fullRemaining=document.querySelector('#full-remaining');if(fullRemaining&&fullRemaining.textContent!==remaining)fullRemaining.textContent=remaining; }
-async function playTrack(id,queue=null,queuePosition=null) { if(!tracks[id] || (state.loading && state.current===id))return;const request=++state.sessionPlay;state.current=id;state.position=0;if(queue)state.queue=[...queue];if(Number.isInteger(queuePosition)&&state.queue[queuePosition]===id){state.queuePosition=queuePosition;}else{const qi=state.queue.indexOf(id);if(qi>=0)state.queuePosition=qi;else{state.queue.push(id);state.queuePosition=state.queue.length-1;}}state.loading=true;state.playing=false;updatePlayback();try { await engine.play(tracks[id],0);if(request!==state.sessionPlay)return;state.loading=false;state.playing=true;updatePlayback();if(state.overlay?.type==='fullscreen')renderFullscreen();if(state.overlay?.type==='queue')renderQueue(); } catch(e) {if(request!==state.sessionPlay)return;state.loading=false;state.playing=false;updatePlayback();toast('Tap Play to start audio.');} }
+async function playTrack(id,queue=null,queuePosition=null) { if(!tracks[id] || (state.loading && state.current===id))return;const request=++state.sessionPlay;state.current=id;state.position=0;if(queue)state.queue=[...queue];if(Number.isInteger(queuePosition)&&state.queue[queuePosition]===id){state.queuePosition=queuePosition;}else{const qi=state.queue.indexOf(id);if(qi>=0)state.queuePosition=qi;else{state.queue.push(id);state.queuePosition=state.queue.length-1;}}state.loading=true;state.playing=false;updatePlayback();try { await engine.play(tracks[id],0);if(request!==state.sessionPlay)return;state.loading=false;state.playing=engine.isPlaying;updatePlayback();if(state.overlay?.type==='fullscreen')renderFullscreen();if(state.overlay?.type==='queue')renderQueue(); } catch(e) {if(request!==state.sessionPlay)return;state.loading=false;state.playing=false;updatePlayback();toast('Tap Play to start audio.');} }
 async function togglePlay() {
   const wasPlaying=state.playing;
   if(state.playing || state.loading){
@@ -147,7 +150,7 @@ async function togglePlay() {
   } else {
     const request=++state.sessionPlay;
     state.loading=true;updatePlayback();
-    try {await engine.play(tracks[state.current],state.position);if(request!==state.sessionPlay)return;state.playing=true;}
+    try {await engine.play(tracks[state.current],state.position);if(request!==state.sessionPlay)return;state.playing=engine.isPlaying;}
     catch {state.playing=false;}
     if(request!==state.sessionPlay)return;state.loading=false;
   }
@@ -214,3 +217,32 @@ document.addEventListener('keydown',event=>{const editable=['INPUT','TEXTAREA','
 setInterval(()=>{if(!state.playing)return;state.position=engine.getCurrentTime();if(!tracks[state.current].video_id && state.position>=tracks[state.current].duration){if(state.repeat){seek(0);}else nextTrack();}updatePosition();},250);
 window.addEventListener('pagehide',()=>{++state.sessionPlay;state.loading=false;if(state.playing)state.position=engine.getCurrentTime();engine.pause();state.playing=false;updatePlayback();});
 hydrateIcons();navigate('home',false);updateSidebar();updatePlayback();setVolume(.65);
+
+// Route headset/OS commands through the same state transitions as the visible controls.
+if ('mediaSession' in navigator) {
+  const handlers = {
+    play: () => { if (!state.playing && !state.loading) togglePlay(); },
+    pause: () => { if (state.playing || state.loading) togglePlay(); },
+    stop: () => { if (state.playing || state.loading) togglePlay(); },
+    previoustrack: () => nextTrack(-1),
+    nexttrack: () => nextTrack(),
+    seekto: details => { if (Number.isFinite(details.seekTime)) seek(details.seekTime); }
+  };
+  for (const [action, handler] of Object.entries(handlers)) {
+    try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
+  }
+}
+
+// Music CDN artwork can be unavailable even when supplied by search.
+document.addEventListener('error', event => {
+  const image=event.target;
+  if (!(image instanceof HTMLImageElement)) return;
+  const row=image.closest('.track-row');
+  const track=row ? tracks[Number(row.dataset.track)] : image.id==='player-art' ? tracks[state.current] : null;
+  if (!track?.video_id) return;
+  const fallback=`https://i.ytimg.com/vi/${encodeURIComponent(track.video_id)}/mqdefault.jpg`;
+  if (image.src===fallback) return;
+  track.cover=fallback;
+  document.querySelectorAll(`.track-row[data-track="${track.id}"] img`).forEach(img=>{if(img.src!==fallback)img.src=fallback;});
+  if(state.current===track.id)document.querySelector('#player-art').src=fallback;
+}, true);
