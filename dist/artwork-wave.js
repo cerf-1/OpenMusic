@@ -67,6 +67,7 @@ export function createArtworkWave(canvas, readState) {
   });
   function visible(){return !document.hidden&&!document.body.classList.contains('has-fullscreen');}
   function outline(expansion,detail){
+    expansion*=.75;detail*=.75;
     const half=(width-2*pad)/2+2+expansion;
     // A true rounded rectangle follows the cover, including its corner radius.
     const corner=Math.min(half,radius+expansion+2),edge=half-corner;

@@ -1,4 +1,4 @@
-import { createArtworkWave } from './artwork-wave.js?v=3';
+import { createArtworkWave } from './artwork-wave.js?v=4';
 import { AudioEngine, searchTracks } from './stream.js?v=7';
 import { createCoverWave } from './fullscreen.js?v=2';
 import { createPlayerMaterial } from './liquid-glass.js?v=2';
