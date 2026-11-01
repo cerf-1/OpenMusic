@@ -1,4 +1,4 @@
-import { DemoAudioEngine } from './audio.js?v=3';
+import { DemoAudioEngine } from './audio.js?v=4';
 import { API_BASE } from './config.js';
 
 export async function resolveTrack(body, signal) {
@@ -61,7 +61,7 @@ export class AudioEngine {
     if(!this._streamContext){
       const context=new Context({latencyHint:'interactive'});
       const analyser=context.createAnalyser();
-      analyser.fftSize=1024;analyser.smoothingTimeConstant=.65;
+      analyser.fftSize=1024;analyser.smoothingTimeConstant=0;
       // CORS is set before src. A media element has exactly one source node.
       this._analysisAudio=new Audio();
       this._analysisAudio.preload='metadata';

@@ -58,7 +58,7 @@ export class DemoAudioEngine {
     this._master.connect(context.destination);
     this._analyser = context.createAnalyser();
     this._analyser.fftSize = 1024;
-    this._analyser.smoothingTimeConstant = .65;
+    this._analyser.smoothingTimeConstant = 0;
     this._master.connect(this._analyser);
     this._compressor = compressor;
 
