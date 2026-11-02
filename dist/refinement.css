@@ -141,7 +141,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #c5afea; outline-
 .card-play { width: 52px; height: 52px; background: #f4f4f5; color: #161619; }
 .card-play svg { width: 23px; height: 23px; }
 .recent-tracks { gap: 4px 28px; }
-.track-row { min-height: 76px; padding: 10px 12px; border-radius: 12px; gap: 14px; }
+.track-row { min-height: 76px; padding: 10px 12px; border-radius: 12px; gap: 14px; cursor: pointer; }
 .track-row.current { background: #29292e; }
 .track-row.current .track-title { color: #fff; }
 .track-thumb, .track-thumb img { width: 52px; height: 52px; border-radius: 8px; }
