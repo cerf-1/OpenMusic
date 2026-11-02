@@ -45,7 +45,7 @@ export function createRelativeSignal() {
   };
 }
 
-export function createArtworkWave(canvas, readState) {
+export function createArtworkWave(canvas, readState, {isVisible=()=>!document.body.classList.contains('has-fullscreen')}={}) {
   const ctx=canvas?.getContext('2d');
   if(!ctx)return {wake(){},destroy(){}};
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -65,7 +65,7 @@ export function createArtworkWave(canvas, readState) {
     radius=parseFloat(getComputedStyle(image).borderRadius)||12;
     wake();
   });
-  function visible(){return !document.hidden&&!document.body.classList.contains('has-fullscreen');}
+  function visible(){return !document.hidden&&isVisible();}
   function outline(expansion,detail){
     expansion*=.75;detail*=.75;
     const half=(width-2*pad)/2+2+expansion;
