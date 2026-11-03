@@ -65,7 +65,7 @@ export function createArtworkWave(canvas, readState) {
     radius=parseFloat(getComputedStyle(image).borderRadius)||12;
     wake();
   });
-  function visible(){return !document.hidden&&!document.body.classList.contains('has-fullscreen');}
+  function visible(){return !document.hidden&&(canvas.classList.contains('cover-wave')||!document.body.classList.contains('has-fullscreen'));}
   function outline(expansion,detail){
     expansion*=.75;detail*=.75;
     const half=(width-2*pad)/2+2+expansion;
