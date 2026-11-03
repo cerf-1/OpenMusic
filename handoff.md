@@ -39,3 +39,14 @@ Rebuild fullscreen around the supplied Spotify reference: a large centered cover
 ### Repository state
 
 Work is in the nested `openmusic` Git repository. `tests/audio-analysis.browser.html` was already staged before this task and is deliberately excluded from the fullscreen commit. No deployment was requested or performed.
+
+## 2026-11-03 — Centered metadata and proportional fullscreen wave
+
+- Centered title and artist beneath the cover.
+- Reduced desktop cover size by about 22% and mobile cover size by about 14–18%, depending on the limiting viewport dimension. At 1440×1000 the cover is now approximately 459px instead of 589px.
+- Fullscreen wave canvas now extends 18% of the cover size on each side. Displacement, spectral detail, stroke width and glow scale from cover width / 80; mini-player rendering keeps scale 1 and its original constants/appearance.
+- Reserved proportional space above the cover and between cover and metadata so the complete wave canvas remains clear of the text.
+- Checked live audio on desktop 1440×1000 and mobile 390×844 / 320×568. At the smallest size, wave bounds end at y≈279, metadata starts at y≈293 and ends at y≈350, and the player starts at y=410. No horizontal overflow or console errors.
+- Existing artwork-wave and stream tests pass; JavaScript syntax and diff whitespace checks pass.
+- Updated previews: `../openmusic-fullscreen-scaled-wave-desktop.png` and `../openmusic-fullscreen-scaled-wave-mobile.png`.
+- Lower player layout and styling remain unchanged. The previously staged audio-analysis browser test remains outside this commit.

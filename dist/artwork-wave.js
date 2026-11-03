@@ -52,7 +52,8 @@ export function createArtworkWave(canvas, readState) {
   let frame=0,last=0,disposed=false,analyser=null,time,frequency,previousTrack;
   let level=0,bass=0,hit=0;
   const relativeSignal=createRelativeSignal();
-  let width=0,height=0,pad=0,radius=14;
+  let width=0,height=0,pad=0,radius=14,visualScale=1;
+  const fullscreen=canvas.classList.contains('cover-wave');
   const bands=new Float32Array(96);
   const points=new Float32Array(192);
   const observer=new ResizeObserver(()=>{
@@ -62,6 +63,9 @@ export function createArtworkWave(canvas, readState) {
     ctx.setTransform(dpr,0,0,dpr,0,0);
     const image=canvas.parentElement.querySelector('img');
     pad=(width-image.clientWidth)/2;
+    // Scale fullscreen displacement, detail, stroke and glow with its cover.
+    // Keep the existing mini-player rendering at exactly its original scale.
+    visualScale=fullscreen?image.clientWidth/80:1;
     radius=parseFloat(getComputedStyle(image).borderRadius)||12;
     wake();
   });
@@ -114,24 +118,24 @@ export function createArtworkWave(canvas, readState) {
     if(width){
       ctx.clearRect(0,0,width,height);
       const energy=clamp(level*.8+bass*.25+hit*.3);
-      const expansion=Math.min(pad-6,(pad-7)*(level*.82+bass*.18)+hit*2);
-      const detail=Math.min(Math.max(0,pad-4-expansion),Math.min(8,pad*.5)*(.85+level*.65+hit*.35));
+      const expansion=Math.min(pad-6*visualScale,(pad-7*visualScale)*(level*.82+bass*.18)+hit*2*visualScale);
+      const detail=Math.min(Math.max(0,pad-4*visualScale-expansion),Math.min(8*visualScale,pad*.5)*(.85+level*.65+hit*.35));
       // The fill fades inward: an erased, feathered rounded rectangle keeps
       // a clear 1.5px breathing space around the cover, even at a strong hit.
       outline(expansion,detail);
       ctx.fillStyle=`rgba(183,162,232,${energy*.26})`;ctx.fill();
       ctx.globalCompositeOperation='destination-out';
-      ctx.shadowColor='#000';ctx.shadowBlur=5;
+      ctx.shadowColor='#000';ctx.shadowBlur=5*visualScale;
       ctx.fillStyle='#000';
       ctx.beginPath();ctx.roundRect(pad-1.5,pad-1.5,width-pad*2+3,height-pad*2+3,radius+1.5);ctx.fill();
       ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
       // Very small, bounded canvas: glow never repaints the whole player.
-      ctx.shadowColor=`rgba(193,164,240,${energy*.55})`;ctx.shadowBlur=energy*6;
-      outline(expansion+2,Math.min(Math.max(0,pad-6-expansion),energy*3));
-      ctx.strokeStyle=`rgba(183,162,232,${.05+energy*.22})`;ctx.lineWidth=2;ctx.stroke();
+      ctx.shadowColor=`rgba(193,164,240,${energy*.55})`;ctx.shadowBlur=energy*6*visualScale;
+      outline(expansion+2*visualScale,Math.min(Math.max(0,pad-6*visualScale-expansion),energy*3*visualScale));
+      ctx.strokeStyle=`rgba(183,162,232,${.05+energy*.22})`;ctx.lineWidth=2*visualScale;ctx.stroke();
       ctx.shadowBlur=0;
       outline(expansion,detail);
-      ctx.strokeStyle=`rgba(223,204,250,${.07+energy*.76})`;ctx.lineWidth=1.3+hit*.65;ctx.stroke();
+      ctx.strokeStyle=`rgba(223,204,250,${.07+energy*.76})`;ctx.lineWidth=(1.3+hit*.65)*visualScale;ctx.stroke();
       // Clip even the contour's glow out of the cover's breathing space.
       ctx.globalCompositeOperation='destination-out';ctx.fillStyle='#000';
       ctx.beginPath();ctx.roundRect(pad-1.5,pad-1.5,width-pad*2+3,height-pad*2+3,radius+1.5);ctx.fill();
