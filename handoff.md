@@ -50,3 +50,14 @@ Work is in the nested `openmusic` Git repository. `tests/audio-analysis.browser.
 - Existing artwork-wave and stream tests pass; JavaScript syntax and diff whitespace checks pass.
 - Updated previews: `../openmusic-fullscreen-scaled-wave-desktop.png` and `../openmusic-fullscreen-scaled-wave-mobile.png`.
 - Lower player layout and styling remain unchanged. The previously staged audio-analysis browser test remains outside this commit.
+
+## 2026-11-04 — Fullscreen navigation and player utility alignment
+
+- Replaced the fullscreen source label (`Search results`, collection name, etc.) with an accessible Back button that closes fullscreen and restores focus.
+- Removed the duplicate queue and exit controls from the **upper right**, per the user's correction; the bottom player keeps both actions.
+- Grouped queue/fullscreen controls with a 4px gap, retaining the existing separation from volume. Matched fullscreen to queue's 44×44 target, centered 20px SVG, muted color, transparent background and hover treatment; reduced the four-corner path to comparable visual bounds.
+- Updated app/style cache versions.
+- Validation: browser at desktop 1280×720 and mobile 390×844; Back closes fullscreen and restores focus, repeated fullscreen entry and bottom queue action work, no console errors or mobile horizontal overflow. Measured both bottom utility targets at 44×44, both SVGs at 20×20 with identical vertical bounds and a 4px inter-button gap. `git diff --check` passes.
+- Previews: `../openmusic-fullscreen-navigation-desktop.png`, `../openmusic-fullscreen-navigation-mobile.png`.
+- User requested committing and pushing these UI changes to `origin/main`. No deployment requested.
+- Existing staged `tests/audio-analysis.browser.html` is unrelated and remains untouched.

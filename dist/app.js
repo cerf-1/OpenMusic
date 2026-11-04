@@ -176,7 +176,6 @@ function syncFullscreen() {
   for(const img of root.querySelectorAll('[data-full-art]'))if(img.getAttribute('src')!==art)img.src=art;
   root.querySelector('#full-title').textContent=t.title;
   root.querySelector('#full-artist').textContent=t.artist || 'YouTube';
-  root.querySelector('#full-source').textContent=t.video_id?'Search results':albums[t.engine]?.title || 'OpenMusic';
   root.querySelector('#full-title').title=t.title;
   root.querySelector('#full-artist').title=t.artist || 'YouTube';
 
@@ -185,7 +184,7 @@ function renderFullscreen() {
   if(state.overlay?.type==='fullscreen'){closeOverlay();return;}
   showOverlay(`<section class="fullscreen-player listening-room" role="dialog" aria-labelledby="full-title">
     <img class="fullscreen-bg" data-full-art alt="" />
-    <header class="fullscreen-header"><p id="full-source"></p><div class="fullscreen-actions"><button class="icon-button" data-action="queue" aria-label="Open queue">${icon('queue')}</button><button class="icon-button" data-action="close-overlay" aria-label="Close full screen">${icon('expand')}</button></div></header>
+    <header class="fullscreen-header"><button class="icon-button fullscreen-back" data-action="close-overlay" aria-label="Back" title="Back">${icon('left')}</button></header>
     <div class="listening-layout"><div class="listening-art-stage"><canvas class="cover-wave" aria-hidden="true"></canvas><img class="listening-art" data-full-art alt="Current track artwork" /></div>
     <div class="listening-details"><h2 id="full-title"></h2><p id="full-artist"></p></div></div>
   </section>`,{type:'fullscreen'});

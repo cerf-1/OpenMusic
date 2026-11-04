@@ -3,7 +3,10 @@
 .now-playing-info strong,.now-playing-info>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mini-art-button{cursor:pointer;flex-shrink:0;padding:0}
 .now-playing-info:hover strong{color:#d8c5f5}
-.fullscreen-button{flex-shrink:0}
+/* Keep the view controls together, with matching targets and optical alignment. */
+.player-view-controls{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.player-tools .fullscreen-button{width:44px;height:44px;border-radius:12px;color:#aaa8b2;background:transparent}
+.player-tools .fullscreen-button:hover{background:#ffffff0b}
 html:has(> body.has-fullscreen){scrollbar-gutter:stable}
 .has-fullscreen > .player{z-index:101;visibility:visible}
 .has-fullscreen .mobile-nav{visibility:hidden}
@@ -11,9 +14,7 @@ html:has(> body.has-fullscreen){scrollbar-gutter:stable}
 .listening-room.fullscreen-player{--player-clearance:122px;position:fixed;inset:10px 10px var(--player-clearance);z-index:100;overflow:auto;border-radius:14px;background:#27232d;color:#faf8fc;isolation:isolate;animation:room-enter .25s ease both;scrollbar-width:thin}
 .listening-room .fullscreen-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(80px) saturate(.55);opacity:.3;z-index:-2;pointer-events:none}
 .listening-room:after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#24202b35,#19161f9e)}
-.listening-room .fullscreen-header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px 28px;height:80px;box-sizing:border-box}
-.listening-room #full-source{margin:0;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px;font-weight:700;color:#f6f1f9}
-.fullscreen-actions{display:flex;gap:8px;flex-shrink:0}
+.listening-room .fullscreen-header{display:flex;justify-content:flex-start;align-items:center;gap:20px;padding:20px 28px;height:80px;box-sizing:border-box}
 .listening-room .icon-button{width:40px;height:40px;color:#dfd9e5;border-radius:50%;flex-shrink:0}
 .listening-room .icon-button:hover{background:#ffffff12;color:#fff}
 .listening-room .icon-button svg{width:20px;height:20px}
@@ -29,8 +30,6 @@ html:has(> body.has-fullscreen){scrollbar-gutter:stable}
  .now-playing-info{margin-left:5px}
  .listening-room.fullscreen-player{inset:8px 8px var(--player-clearance);border-radius:12px}
  .listening-room .fullscreen-header{height:64px;padding:12px 16px;gap:12px}
- .listening-room #full-source{font-size:12px}
- .fullscreen-actions{gap:2px}
  .listening-room .icon-button{width:36px;height:36px}
  .listening-layout{--cover-size:min(340px,calc((100vw - 72px)*.86),max(110px,calc((100svh - var(--player-clearance) - 230px)*.82)));min-height:calc(100% - 64px);padding:max(20px,calc(var(--cover-size)*.18)) 24px 28px;gap:calc(var(--cover-size)*.18 + 14px)}
  .listening-room .listening-art{border-radius:10px}
