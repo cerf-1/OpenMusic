@@ -1,5 +1,13 @@
 # OpenMusic handoff
 
+## 2026-11-07 — Stable search field and results on Enter
+
+- The header uses a single search input. Its 48 px height, 24 px radius and position stay the same when focused, filled or submitted. Ctrl+K / ⌘K focuses the field.
+- Enter submits the query and opens a separate list directly below the field. On mobile the list extends left to give track names room. Its short entrance animation respects reduced motion. Editing or clearing the query dismisses the list and cancels its request.
+- YouTube results use the existing cache and pagination. If the service returns no results or is unavailable, matching OpenMusic tracks appear when available. Selecting a track starts playback in the current view.
+- Updated the header markup in `dist/index.html`, styles in `dist/quick-search.css` and search handling in `dist/app.js`.
+- `npm run check`, all 18 JavaScript tests and `git diff --check` passed. Edge checks at 1440 × 900 and 320 × 568 covered stable field geometry, submission, pagination, clearing, Escape and playback of a local result. YouTube scenarios used mocked API responses.
+
 ## 2026-11-06 — Quick search in the top bar
 
 - The upper-right search button and Ctrl+K / ⌘K expand the header control into a single surface with the input and results separated by a thin line. On mobile it spans the width of the header. The sidebar and mobile navigation still open the full Search page.
