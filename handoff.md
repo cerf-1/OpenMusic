@@ -1,5 +1,15 @@
 # OpenMusic handoff
 
+## 2026-11-06 — Quick search in the top bar
+
+- The upper-right search button and Ctrl+K / ⌘K expand the header control into a single surface with the input and results separated by a thin line. On mobile it spans the width of the header. The sidebar and mobile navigation still open the full Search page.
+- An empty field shows three suggested tracks. Typing suggests up to five OpenMusic tracks by title, artist, album or genre. Enter or the arrow at the end of the field queries YouTube through the existing backend. Results, pagination, empty states and retry feedback stay in the panel.
+- Choosing a result plays it in the existing player and uses the displayed results as its queue. Escape restores focus to the search button; clicking or tabbing outside closes the panel.
+- `dist/index.html` contains the panel and cache version updates; `dist/quick-search.css` handles its layout; `dist/app.js` handles focus, playback and requests. Both search interfaces share the same result cache and track registration. Editing or dismissing the quick search cancels its pending request.
+- Online results require the API origin configured in `dist/config.js`. OpenMusic suggestions are available without the backend.
+- Validation: `npm run check`, all 18 JavaScript tests, and `git diff --check` passed.
+- Checked in Edge at 1440 × 900 and 320 × 568. Verified that the expanded surface aligns with the desktop trigger, fits the mobile header, and supports keyboard shortcuts, dismissal, clearing, local playback, and the shared cache. YouTube scenarios used mocked API responses.
+
 ## 2026-11-03 — Fullscreen redesign
 
 ### Request and constraints

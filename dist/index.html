@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="./liquid-glass.css?v=2" />
   <link rel="stylesheet" href="./fullscreen.css?v=5" />
   <link rel="stylesheet" href="./artwork-wave.css?v=1" />
+  <link rel="stylesheet" href="./quick-search.css?v=2" />
 </head>
 <body>
   <aside class="sidebar" aria-label="Main navigation">
@@ -35,7 +36,25 @@
   </aside>
 
   <main class="main-shell">
-    <header class="topbar"><div class="breadcrumb" id="breadcrumb">HOME</div><div class="topbar-actions"><button class="search-trigger" aria-label="Search music" data-action="navigate" data-view="search"><span data-icon="search"></span><span>Search music</span><kbd>⌘ K</kbd></button><button class="mobile-avatar avatar" data-action="profile" aria-label="Profile">A</button></div></header>
+    <header class="topbar">
+      <div class="breadcrumb" id="breadcrumb">HOME</div>
+      <div class="topbar-actions">
+        <div class="quick-search-slot">
+          <button class="search-trigger" id="quick-search-trigger" type="button" aria-label="Quick search" aria-controls="quick-search" aria-expanded="false" aria-keyshortcuts="Control+K Meta+K"><span data-icon="search" aria-hidden="true"></span><span>Search music</span><kbd aria-hidden="true">Ctrl K</kbd></button>
+          <section id="quick-search" class="quick-search" aria-label="Quick search" hidden>
+            <form id="quick-search-form" role="search" aria-label="Quick music search">
+              <span data-icon="search" aria-hidden="true"></span>
+              <input id="quick-search-input" type="search" placeholder="What do you want to play?" aria-label="Songs, artists, or moods" autocomplete="off" enterkeyhint="search" />
+              <button type="button" id="quick-search-clear" aria-label="Close quick search" title="Close quick search"><span data-icon="close" aria-hidden="true"></span></button>
+              <button type="submit" id="quick-search-submit" aria-label="Search YouTube" title="Search YouTube" disabled hidden><span data-icon="right" aria-hidden="true"></span></button>
+            </form>
+            <p id="quick-search-status" role="status"></p>
+            <div id="quick-search-results"></div>
+          </section>
+        </div>
+        <button class="mobile-avatar avatar" data-action="profile" aria-label="Profile">A</button>
+      </div>
+    </header>
     <div id="content" tabindex="-1"></div>
     <footer class="page-footer"><span class="footer-mark">openmusic</span><button data-action="about">About OpenMusic <span>↗</span></button></footer>
   </main>
@@ -48,6 +67,6 @@
 
   <nav class="mobile-nav" aria-label="Mobile navigation"><button data-action="navigate" data-view="home" class="active"><span data-icon="compass"></span>Home</button><button data-action="navigate" data-view="search"><span data-icon="search"></span>Search</button><button data-action="navigate" data-view="library"><span data-icon="library"></span>Library</button></nav>
   <div id="overlay-root"></div>
-  <script type="module" src="./app.js?v=22"></script>
+  <script type="module" src="./app.js?v=24"></script>
 </body>
 </html>
