@@ -1,5 +1,11 @@
 # OpenMusic handoff
 
+## 2026-11-07 — Connected search surface and wider mobile layout
+
+- After Enter, the results meet the input edge with no gap. Both parts share a background and outer border, with a subtle divider and rounded outer corners. The input stays in place.
+- The mobile header hides the breadcrumb and gives the search field the space beside the profile avatar. The attached results can grow to half the viewport height and scroll internally.
+- Verified in Edge at 1440 × 900 and 320 × 568. Checked the flush join, shared background, mobile width and scrolling with ten mocked results. All 18 JavaScript tests, syntax checks and `git diff --check` passed.
+
 ## 2026-11-07 — Stable search field and results on Enter
 
 - The header uses a single search input. Its 48 px height, 24 px radius and position stay the same when focused, filled or submitted. Ctrl+K / ⌘K focuses the field.
