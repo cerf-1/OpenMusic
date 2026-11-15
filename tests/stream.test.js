@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
+import { API_BASE } from '../dist/config.js';
 
 class FakeAudio extends EventTarget {
   constructor() { super(); this.currentTime=0; this.duration=300; this.volume=1; this.plays=0; this.paused=true; this.ended=false; }
@@ -165,7 +166,7 @@ test('relay audio uses one CORS graph, preserves controls and isolates legacy di
     const track={video_id:'VALID_ID_11'};
     await engine.play(track,0);
     const analysed=engine.audio;
-    assert.equal(analysed.src,'http://127.0.0.1:8000/api/v1/audio/opaque_handle');
+    assert.equal(analysed.src,`${API_BASE}/api/v1/audio/opaque_handle`);
     assert.ok(engine.getAnalyser());
     engine.pause();await engine.play(track,9);engine.setVolume(.3);
     assert.equal(engine.audio.currentTime,9);assert.equal(engine.audio.volume,.3);
@@ -183,4 +184,18 @@ test('an untrusted audio_path cannot replace the resolved stream',async()=>{
  const engine=new AudioEngine(()=>{},()=>{});
  const track={video_id:'VALID_ID_11'};await engine.play(track,0);
  assert.equal(engine.audio.src,'safe');assert.equal(track.audio_path,null);
+});
+
+test('logout releases remote audio and prevents a pending stream from starting',async()=>{
+ let finish;
+ globalThis.fetch=()=>new Promise(resolve=>finish=resolve);
+ const engine=new AudioEngine(()=>{},()=>{});
+ const playback=engine.play({video_id:'VALID_ID_11'},0);
+ engine.clearRemote();
+ finish({ok:true,json:async()=>({stream_url:'private-audio'})});
+ await playback;
+ assert.equal(engine.track,null);
+ assert.equal(engine.audio.plays,0);
+ assert.equal(engine.audio.src,'');
+ assert.equal(engine.pending.size,0);
 });

@@ -11,13 +11,51 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi import HTTPException
+from pathlib import Path
+import pymysql
+import settings
+from accounts import router as accounts_router
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from resolver import resolve, search, ResolveError
 from audio_relay import register_audio, relay_audio
 
+class RedactOAuthQuery(logging.Filter):
+    def filter(self, record):
+        # Uvicorn logs request targets including query strings by default.
+        if isinstance(record.args, tuple) and len(record.args) == 5:
+            args = list(record.args)
+            if isinstance(args[2], str) and args[2].startswith('/api/v1/auth/telegram/callback'):
+                args[2] = args[2].split('?', 1)[0]
+                record.args = tuple(args)
+        return True
+
+
+logging.getLogger('uvicorn.access').addFilter(RedactOAuthQuery())
 log = logging.getLogger('openmusic')
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:4173', 'http://127.0.0.1:4173'], allow_methods=['POST', 'GET'], allow_headers=['Content-Type', 'Range'], expose_headers=['Content-Length', 'Content-Range', 'Accept-Ranges'])
+app.add_middleware(CORSMiddleware, allow_origins=settings.ALLOWED_ORIGINS, allow_credentials=True, allow_methods=['POST', 'GET', 'PUT', 'DELETE'], allow_headers=['Content-Type', 'Range', 'X-CSRF-Token'], expose_headers=['Content-Length', 'Content-Range', 'Accept-Ranges'])
+app.include_router(accounts_router)
+
+
+@app.middleware('http')
+async def private_responses(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith(('/api/v1/auth', '/api/v1/likes')):
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['Referrer-Policy'] = 'no-referrer'
+    return response
+
+
+@app.exception_handler(pymysql.MySQLError)
+async def database_unavailable(request: Request, exc):
+    return error('DATABASE_UNAVAILABLE', 'База данных временно недоступна. Повторите позже', 503)
+
+
+@app.exception_handler(HTTPException)
+async def account_error(request: Request, exc):
+    return error('AUTH_REQUIRED' if exc.status_code == 401 else 'REQUEST_FAILED', exc.detail, exc.status_code)
 
 
 class ResolveRequest(BaseModel):
@@ -130,3 +168,7 @@ async def search_endpoint(body: SearchRequest):
 @app.get('/api/v1/audio/{token}')
 async def audio_endpoint(token: str, request: Request):
     return await relay_audio(token, request)
+
+
+# One origin for production and the default local setup; API routes take precedence.
+app.mount('/', StaticFiles(directory=Path(__file__).resolve().parent.parent / 'dist', html=True), name='frontend')

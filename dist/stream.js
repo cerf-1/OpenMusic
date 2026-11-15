@@ -112,6 +112,17 @@ export class AudioEngine {
     if(data.artist)track.artist=data.artist;
     return track;
   }
+  clearRemote() {
+    // Release account-specific streams without interrupting an active demo track.
+    if (this.track?.video_id) { ++this.generation; this.pause(); this.track = null; }
+    this.pending.clear();
+    for (const audio of [this._directAudio, this._analysisAudio]) {
+      if (!audio) continue;
+      audio.pause();
+      if (audio.removeAttribute) audio.removeAttribute('src'); else audio.src = '';
+      audio.load();
+    }
+  }
   pause() { this.desiredPlaying = false; this.demo.pause(); this.audio.pause(); }
   seek(seconds) { if (this.track?.video_id) { try { this.audio.currentTime = seconds; } catch {} } else this.demo.seek(seconds); }
   setVolume(value) { this.demo.setVolume(value); this._directAudio.volume = value;if(this._analysisAudio)this._analysisAudio.volume=value; }

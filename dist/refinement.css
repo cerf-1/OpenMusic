@@ -518,3 +518,12 @@ button:disabled { opacity: .4; cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .main-play[aria-busy="true"]::after, .track-row[aria-busy="true"] .track-number::after { animation: none; border-style: dotted; }
 }
+
+/* Account and favorite actions share the existing responsive layout. */
+.favorite-error { display:block; max-width:260px; color:#ffb4ab; font-size:12px; line-height:1.4; white-space:normal; }
+.track-row > .favorite-error { grid-column:2 / -1; }
+#account-status { margin:12px 0; color:#ffb4ab; font-size:14px; }
+#account-status:empty { display:none; }
+.account-actions { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0; }
+.user-profile > span:nth-child(2) { overflow:hidden; text-overflow:ellipsis; }
+button:disabled { cursor:wait; opacity:.6; }
