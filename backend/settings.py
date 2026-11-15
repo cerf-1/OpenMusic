@@ -1,6 +1,12 @@
 """Environment configuration; secrets are used only by the backend."""
 import os
+from pathlib import Path
 from urllib.parse import urlsplit
+from dotenv import load_dotenv
+
+# Direct uvicorn and migration runs read the project configuration as well.
+# Explicit process environment variables still take precedence.
+load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 PRODUCTION = os.getenv('APP_ENV', 'development') == 'production'
 PUBLIC_ORIGIN = os.getenv('PUBLIC_ORIGIN', 'http://127.0.0.1:8000').rstrip('/')

@@ -16,9 +16,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements-test.txt
 docker compose up -d --wait mariadb
-set -a
-source .env
-set +a
 python backend/migrate.py
 uvicorn --app-dir backend app:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
@@ -28,6 +25,9 @@ uvicorn --app-dir backend app:app --host 127.0.0.1 --port 8000 --no-access-log
 операции авторизации/избранного отвечают `503`; интерфейс показывает ошибку и не
 подтверждает сохранение. Без Telegram credentials гостевой режим работает,
 `/auth/telegram/start` отвечает контролируемым `503`.
+Backend и команда миграций читают `.env` из корня проекта при запуске. После
+изменения файла перезапустите backend. Переменные, уже заданные в окружении
+процесса, имеют приоритет над `.env`.
 
 Миграции запускаются явно, до запуска приложения. Версии записываются в
 `schema_migrations`, повторный запуск безопасен; DDL первого этапа допускает
@@ -47,6 +47,12 @@ SameSite cookies. CORS допускает credentials только для явн
 создайте бота и откройте BotFather → Login Widget. Зарегистрируйте origin
 сайта и точный callback, например
 `https://music.example.com/api/v1/auth/telegram/callback`.
+Документация Telegram не гарантирует поддержку `http://127.0.0.1` или
+`http://localhost` как Trusted Origin и OIDC Redirect URI для веб-сайта.
+Локальный HTTP подходит для разработки приложения и тестов с подменённым
+Telegram, но для реального входа используйте публичный HTTPS адрес или HTTPS
+туннель к локальному backend. В production сам backend требует единый HTTPS
+origin для сайта и API.
 Скопируйте Client ID и Client Secret в окружение backend:
 
 ```dotenv

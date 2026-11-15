@@ -2,6 +2,7 @@
 import os
 from contextlib import contextmanager
 import pymysql
+import settings  # Load the project .env for direct migration runs.
 
 
 @contextmanager
