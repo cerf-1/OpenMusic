@@ -37,3 +37,46 @@ html:has(> body.has-fullscreen){scrollbar-gutter:stable}
  .listening-details p{font-size:14px;margin-top:6px}
 }
 @media(prefers-reduced-motion:reduce){.listening-room.fullscreen-player{animation:none}}
+
+.listening-controls:empty,.listening-actions:empty{display:none}
+@media(max-width:720px){
+ .has-fullscreen > .player{visibility:hidden;pointer-events:none}
+ .listening-room.fullscreen-player{inset:0;border-radius:0;overscroll-behavior:contain}
+ .listening-room .fullscreen-header{height:calc(64px + env(safe-area-inset-top));padding-top:calc(12px + env(safe-area-inset-top))}
+ .listening-layout{--cover-size:min(400px,calc(100vw - 64px),max(140px,calc(100svh - 440px)));min-height:calc(100% - 64px - env(safe-area-inset-top));padding:16px 32px calc(24px + env(safe-area-inset-bottom));gap:24px;justify-content:space-evenly}
+ .listening-details,.listening-controls,.listening-actions{width:100%;max-width:440px}
+ .listening-details{text-align:center}
+ .listening-details h2{font-size:clamp(22px,6vw,28px)}
+ .listening-controls .playback{width:100%;display:flex;flex-direction:column;gap:22px}
+ .listening-controls .timeline{position:static;display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0;width:100%;font-size:12px;order:-1}
+ .listening-controls .timeline input{grid-column:1 / -1;grid-row:1;width:100%;min-width:0;height:28px;margin:0;touch-action:pan-y}
+ .listening-controls .timeline time{display:block;min-width:0}
+ .listening-controls #duration{text-align:right}
+ .listening-controls .transport{display:flex;justify-content:space-between;align-items:center;gap:4px;width:100%}
+ .listening-controls .transport .icon-button{display:inline-flex;width:44px;height:48px}
+ .listening-controls .transport .main-play{width:72px;height:72px;flex-shrink:0}
+ .listening-controls .transport .main-play .transport-glyph{width:48px;height:48px}
+ .listening-actions{display:flex;align-items:center;justify-content:center;gap:16px}
+ .listening-actions .player-like{display:inline-flex;margin:0;width:44px;height:44px;color:#d0c8d7}
+ .listening-actions .player-like.liked{color:#c4b0ec}
+ .listening-actions .player-tools{display:flex;align-items:center;gap:16px}
+ .listening-actions .volume-control{display:flex;align-items:center;gap:8px}
+ .listening-actions .player-tools .volume-button{display:inline-flex;width:44px;height:44px}
+ .listening-actions .player-tools input{display:block;width:clamp(48px,16vw,96px)}
+ .listening-actions .fullscreen-button{display:none}
+ .listening-room button:focus-visible{outline:2px solid #dcc5ff;outline-offset:4px}
+}
+@media(max-width:720px) and (max-height:600px){
+ .listening-layout{gap:16px;--cover-size:min(220px,calc(100vw - 64px),max(120px,calc(100svh - 390px)))}
+ .listening-controls .playback{gap:12px}
+ .listening-controls .transport .main-play{width:60px;height:60px}
+}
+@media(max-width:720px){
+ /* Contain the artwork halo without widening the phone viewport. */
+ .listening-layout{overflow:hidden}
+}
+@media(max-width:720px){
+ html:has(> body.has-fullscreen){scrollbar-gutter:auto}
+ .listening-controls .transport .main-play{background:#f3edf9;color:#1a1420;box-shadow:0 8px 28px #0003}
+ .listening-controls .transport .main-play:hover{background:#fff}
+}
