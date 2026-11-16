@@ -2,7 +2,7 @@ import { API_BASE } from './config.js';
 import { FavoritesClient, favoriteIdentity, favoriteMetadata, legacyDemoKeys } from './favorites.js';
 import { createArtworkWave } from './artwork-wave.js?v=6';
 import { AudioEngine, searchTracks } from './stream.js?v=8';
-import { createFullscreenLayout } from './fullscreen.js?v=4';
+import { createFullscreenLayout } from './fullscreen.js?v=5';
 import { createPlayerMaterial } from './liquid-glass.js?v=2';
 
 let coverWave = null;
@@ -285,15 +285,17 @@ function syncFullscreen() {
   root.querySelector('#full-artist').textContent=t.artist || 'YouTube';
   root.querySelector('#full-title').title=t.title;
   root.querySelector('#full-artist').title=t.artist || 'YouTube';
+  root.querySelector('#full-context').textContent=t.album || 'YouTube';
+  root.querySelector('.fullscreen-menu').dataset.id=String(state.current);
 
 }
 function renderFullscreen() {
   if(state.overlay?.type==='fullscreen'){closeOverlay();return;}
   showOverlay(`<section class="fullscreen-player listening-room" role="dialog" aria-labelledby="full-title">
     <img class="fullscreen-bg" data-full-art alt="" />
-    <header class="fullscreen-header"><button class="icon-button fullscreen-back" data-action="close-overlay" aria-label="Back" title="Back">${icon('down')}</button></header>
+    <header class="fullscreen-header"><button class="icon-button fullscreen-back" data-action="close-overlay" aria-label="Back" title="Back">${icon('down')}</button><div class="fullscreen-context"><span>NOW PLAYING</span><strong id="full-context"></strong></div><button class="icon-button fullscreen-menu" data-action="track-menu" aria-label="Current track options">${icon('dots')}</button></header>
     <div class="listening-layout"><div class="listening-art-stage"><canvas class="cover-wave" aria-hidden="true"></canvas><img class="listening-art" data-full-art alt="Current track artwork" /></div>
-    <div class="listening-details"><h2 id="full-title"></h2><p id="full-artist"></p></div><div class="listening-controls"></div><div class="listening-actions"></div></div>
+    <div class="listening-details"><div class="listening-track-copy"><h2 id="full-title"></h2><p id="full-artist"></p></div></div><div class="listening-controls"></div><div class="listening-actions"></div></div>
   </section>`,{type:'fullscreen'});
   fullscreenLayout=createFullscreenLayout(document.querySelector('.listening-room'),document.querySelector('.player'));
   updatePlayback();

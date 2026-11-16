@@ -6,6 +6,7 @@ export function createFullscreenLayout(room, player) {
   const mobile = window.matchMedia('(max-width: 720px)');
   const controls = room.querySelector('.listening-controls');
   const actions = room.querySelector('.listening-actions');
+  const details = room.querySelector('.listening-details');
   const moved = ['.playback', '.player-like', '.player-tools'].map(selector => {
     const element = player.querySelector(selector);
     const marker = document.createComment('fullscreen control position');
@@ -17,7 +18,7 @@ export function createFullscreenLayout(room, player) {
   }
   function adapt() {
     if (mobile.matches) {
-      moved.forEach(({ element }, index) => (index === 0 ? controls : actions).append(element));
+      moved.forEach(({ element }, index) => [controls, details, actions][index].append(element));
     } else restore();
     resize();
   }
