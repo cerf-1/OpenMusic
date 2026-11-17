@@ -98,13 +98,42 @@ function trackWord(n) { return n===1?'track':'tracks'; }
 function trackTable(ids) { return `<div class="track-table"><div class="table-labels"><span>#</span><span>TITLE</span><span>TIME</span></div>${ids.map((id,i)=>trackRow(id,i,{table:true})).join('')}</div>`; }
 function navigate(view,focusSearch=true) { cancelArtistLoad();artistHistory=[];closeQuickSearch();cancelSearch();closeOverlay(false);state.view=view;const templates={home:homeContent,search:searchContent,library:libraryContent,liked:likedContent,'liked-albums':likedAlbumsContent}; content.innerHTML=(templates[view]||homeContent)();document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(['liked','liked-albums'].includes(view)?'library':view)));const labels={home:'FOR YOU',search:'SEARCH',library:'LIBRARY',liked:'LIKED SONGS','liked-albums':'ЛЮБИМЫЕ АЛЬБОМЫ'};document.querySelector('#breadcrumb').innerHTML=`${labels[view]||'FOR YOU'}`;window.scrollTo({top:0,behavior:'instant'});refreshFavoriteButtons();if(view==='search')updateSearchButton();if(view==='search'&&focusSearch)setTimeout(()=>document.querySelector('#search-input')?.focus(),80); }
 function updateSidebar() { document.querySelector('#liked-count').textContent=`${state.likes.size} ${trackWord(state.likes.size)}`;document.querySelector('#custom-playlists').innerHTML=state.playlists.map((p,i)=>`<button class="collection-item" data-action="custom-playlist" data-id="${i}"><span class="collection-cover">${icon('music')}</span><span>${esc(p.name)}<small>${p.tracks.length} ${trackWord(p.tracks.length)}</small></span></button>`).join(''); }
-let artistHistory=[], artistController=null;
+let artistHistory=[], artistController=null, artistHeaderController=null;
+const artistHeaders=new Map();
 const artistPages=new Map();
 function currentArtist() { return artistProfile(state.artist,tracks,albums); }
-function cancelArtistLoad() { artistController?.abort();artistController=null; }
+function cancelArtistLoad() { artistController?.abort();artistController=null;artistHeaderController?.abort();artistHeaderController=null; }
 function artistIsCurrent(a) { return state.queue.length===a.tracks.length && a.tracks.every((id,i)=>state.queue[i]===id); }
 function artistSection() {
   return `<section class="section artists-section"><div class="section-heading"><h2>Artists to explore</h2></div><div class="artist-grid">${catalogArtists(tracks,albums).map(a=>`<button class="artist-card" data-action="open-artist" data-artist="${esc(a.name)}"><img src="${esc(a.cover)}" alt="" loading="lazy" /><strong>${esc(a.name)}</strong><span>${esc(a.genre)} · Artist</span></button>`).join('')}</div></section>`;
+}
+function artistHeaderMarkup(a) {
+  const profile=artistHeaders.get(a.key);
+  const image=a.local?a.cover:profile?.data?.header_image;
+  const message=a.local?'':profile?.status==='error'?profile.message:profile?.data&&!image?'У артиста нет доступной шапки YouTube Music.':profile?.status==='loaded'?'':'Загружаем профиль YouTube Music…';
+  return `${image?`<img class="artist-header-image" src="${esc(image)}" alt="" referrerpolicy="no-referrer" />`:''}<div class="artist-hero-shade"></div><button class="icon-button artist-back" data-action="artist-back" aria-label="Back">${icon('left')}</button><div class="artist-heading"><p class="hero-tag">ARTIST${a.genre?` · ${esc(a.genre.toUpperCase())}`:''}</p><h1 id="artist-title">${esc(profile?.data?.name || a.name)}</h1><p id="artist-track-count">${a.tracks.length} ${trackWord(a.tracks.length)} available${a.local?' · OpenMusic originals':''}</p><div class="artist-profile-status" role="status"><span>${esc(message)}</span>${profile?.status==='error'?'<button class="text-button" data-action="artist-header-retry">Повторить</button>':''}</div></div>`;
+}
+async function loadArtistHeader() {
+  const a=currentArtist();if(!a||a.local||artistHeaderController)return;
+  if(artistHeaders.get(a.key)?.status==='loaded')return;
+  const controller=new AbortController();artistHeaderController=controller;
+  artistHeaders.set(a.key,{status:'loading'});
+  document.querySelector('.artist-hero').innerHTML=artistHeaderMarkup(a);
+  try {
+    const response=await fetch(`${API_BASE}/api/v1/artist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:a.name,...(a.browseId?{browse_id:a.browseId}:{})}),signal:controller.signal});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error?.message || 'Не удалось загрузить профиль артиста.');
+    if(controller.signal.aborted)return;
+    artistHeaders.set(a.key,{status:'loaded',data});
+  } catch(error) {
+    if(controller.signal.aborted)return;
+    artistHeaders.set(a.key,{status:'error',message:error.message || 'Не удалось загрузить профиль артиста.'});
+  } finally {
+    if(artistHeaderController===controller){
+      artistHeaderController=null;
+      if(state.view==='artist'&&artistKey(state.artist)===a.key)document.querySelector('.artist-hero').innerHTML=artistHeaderMarkup(currentArtist());
+    }
+  }
 }
 function artistContent() {
   const a=currentArtist();if(!a)return '';
@@ -120,6 +149,7 @@ function openArtist(name) {
   content.innerHTML=artistContent();document.querySelector('#breadcrumb').textContent='ARTIST';
   document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.remove('active'));
   window.scrollTo({top:0,behavior:'instant'});content.focus({preventScroll:true});updatePlayback();
+  loadArtistHeader();
   if(!a.local&&!artistPages.has(a.key))loadArtistTracks();
 }
 function backFromArtist() {
@@ -132,6 +162,7 @@ function backFromArtist() {
   document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(['liked','liked-albums'].includes(state.view)?'library':state.view)));
   updatePlayback();if(state.view==='search'){document.querySelector('#search-results')?.removeAttribute('aria-busy');updateSearchButton();}
   window.scrollTo({top:previous.scroll,behavior:'instant'});content.focus({preventScroll:true});
+  if(state.view==='artist')loadArtistHeader();
 }
 function syncArtistPlayback() {
   const a=state.view==='artist'?currentArtist():null;if(!a)return;
@@ -153,7 +184,7 @@ async function loadArtistTracks() {
     if(controller.signal.aborted||state.view!=='artist'||artistKey(state.artist)!==a.key)return;
     artistPages.set(a.key,{page,done:!data.has_more});
     document.querySelector('#artist-track-list').innerHTML=currentArtist().tracks.map((id,i)=>trackRow(id,i)).join('');
-    document.querySelector('.artist-heading > p:last-child').textContent=`${currentArtist().tracks.length} ${trackWord(currentArtist().tracks.length)} available`;
+    document.querySelector('#artist-track-count').textContent=`${currentArtist().tracks.length} ${trackWord(currentArtist().tracks.length)} available`;
     status.textContent=data.has_more?'More results available.':'All available tracks are shown.';button.hidden=!data.has_more;updatePlayback();
   } catch(error) {if(!controller.signal.aborted){status.textContent=error.message || 'Couldn’t load tracks. Try again.';button.innerHTML=`Try again ${icon('right')}`;}}
   finally {if(artistController===controller){artistController=null;button.disabled=false;}}
@@ -178,9 +209,10 @@ async function loadSearchResults(query, page, signal) {
     let track=tracks.find(track=>track.video_id===item.video_id);
     if(!track){
       const id=tracks.length;
-      track={id,title:item.title,artist:item.artist || '',album:'YouTube',art:'hero.png',cover:searchCover(item.cover_link) || `https://i.ytimg.com/vi/${encodeURIComponent(item.video_id)}/mqdefault.jpg`,duration:item.duration_seconds || 0,genre:'',engine:0,video_id:item.video_id};
+      track={id,title:item.title,artist:item.artist || '',album:'YouTube',art:'hero.png',cover:searchCover(item.cover_link) || `https://i.ytimg.com/vi/${encodeURIComponent(item.video_id)}/mqdefault.jpg`,duration:item.duration_seconds || 0,genre:'',engine:0,video_id:item.video_id,artist_browse_id:item.artist_browse_id};
       tracks.push(track);
     }
+    if(item.artist_browse_id)track.artist_browse_id=item.artist_browse_id;
     return track.id;
   });
   if(!searchCache.has(key))searchCache.set(key,new Map());
@@ -371,6 +403,7 @@ function addToCustom(index,id) {if(tracks[id]?.video_id){toast('Search results a
 const actions={
   'open-artist':el=>openArtist(el.dataset.artist || tracks[Number(el.dataset.id ?? state.current)]?.artist),
   'artist-back':backFromArtist,
+  'artist-header-retry':()=>loadArtistHeader(),
   'artist-more':()=>loadArtistTracks(),
   'play-artist':()=>{const a=currentArtist();if(a?.tracks.length){if(artistIsCurrent(a))togglePlay();else playTrack(a.tracks[0],a.tracks);}},
   'shuffle-artist':()=>{const a=currentArtist();if(!a?.tracks.length)return;state.shuffle=!state.shuffle;if(state.shuffle)playTrack(a.tracks[Math.floor(Math.random()*a.tracks.length)],a.tracks);else updatePlayback();},
@@ -447,6 +480,11 @@ if ('mediaSession' in navigator) {
 document.addEventListener('error', event => {
   const image=event.target;
   if (!(image instanceof HTMLImageElement)) return;
+  if(image.classList.contains('artist-header-image')){
+    image.remove();const a=currentArtist();
+    if(a&&!a.local){artistHeaders.set(a.key,{status:'error',message:'Не удалось загрузить изображение профиля.'});document.querySelector('.artist-hero').innerHTML=artistHeaderMarkup(a);}
+    return;
+  }
   const row=image.closest('.track-row');
   const quickRow=image.closest('[data-quick-track]');
   const track=row ? tracks[Number(row.dataset.track)] : quickRow ? tracks[Number(quickRow.dataset.quickTrack)] : (image.id==='player-art'||image.hasAttribute('data-full-art')) ? tracks[state.current] : null;
@@ -472,7 +510,7 @@ function clearAccount() {
   const hadAccount=!!state.user;
   ++state.authEpoch;
   if(hadAccount){
-    cancelArtistLoad();artistPages.clear();artistHistory=[];
+    cancelArtistLoad();artistPages.clear();artistHeaders.clear();artistHistory=[];
     cancelSearch();cancelQuickSearch();closeQuickSearch();searchCache.clear();shownSearch=null;
     quickResults.replaceChildren();quickStatus.textContent='';quickInput.value='';quickIds=[];quickPage=1;
     // Discard remote catalog objects and queue entries belonging to the previous account.

@@ -11,6 +11,7 @@ export function artistProfile(name, tracks, albums) {
     key,
     name: songs[0].artist.trim(),
     cover: local ? `./assets/${local.art}` : (songs[0].cover || './assets/hero.png'),
+    browseId: songs.find(track => /^UC[A-Za-z0-9_-]{22}$/.test(track.artist_browse_id || ''))?.artist_browse_id || null,
     genre: local?.genre || '',
     local: !!local,
     tracks: songs.map(track => track.id),

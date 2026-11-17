@@ -19,6 +19,7 @@ import settings
 from accounts import router as accounts_router
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from resolver import resolve, search, ResolveError
+from artists import get_artist
 from audio_relay import register_audio, relay_audio
 
 class RedactOAuthQuery(logging.Filter):
@@ -85,25 +86,32 @@ async def invalid_request(request: Request, exc: RequestValidationError):
     return error('INVALID_REQUEST', 'Некорректный запрос', 422)
 
 
-def worker(conn, query, video_id, page=None):
+def worker(conn, query, video_id, page=None, artist_request=None):
     if os.name == 'posix':
         os.setsid()
     try:
-        conn.send(('ok', search(query, page) if page is not None else resolve(query, video_id)))
+        if artist_request is not None:
+            result = get_artist(**artist_request)
+        elif page is not None:
+            result = search(query, page)
+        else:
+            result = resolve(query, video_id)
+        conn.send(('ok', result))
     except ResolveError as exc:
         log.warning('Resolve failed: %s', exc.code)
         conn.send(('error', (exc.code, exc.message)))
     except Exception as exc:
         log.warning('Resolve failed: %s', type(exc).__name__)
-        conn.send(('error', ('RESOLVE_FAILED', 'Не удалось получить данные трека')))
+        failure = ('ARTIST_UNAVAILABLE', 'Не удалось загрузить профиль артиста') if artist_request is not None else ('RESOLVE_FAILED', 'Не удалось получить данные трека')
+        conn.send(('error', failure))
     finally:
         conn.close()
 
 
-def run_resolve(query, video_id, timeout=30, page=None):
+def run_resolve(query, video_id, timeout=30, page=None, artist_request=None):
     ctx = multiprocessing.get_context('spawn')
     parent, child = ctx.Pipe(duplex=False)
-    process = ctx.Process(target=worker, args=(child, query, video_id, page))
+    process = ctx.Process(target=worker, args=(child, query, video_id, page, artist_request))
     start = time.monotonic()
     try:
         process.start()
@@ -163,6 +171,28 @@ async def search_endpoint(body: SearchRequest):
         return JSONResponse(result, headers={'Cache-Control': 'no-store'})
     code, message = result
     return error(code, message, 504 if code == 'RESOLVE_TIMEOUT' else 502)
+
+
+class ArtistRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    name: str = Field(min_length=1, max_length=300)
+    browse_id: str | None = Field(default=None, pattern=r'^UC[A-Za-z0-9_-]{22}$')
+
+    @model_validator(mode='after')
+    def validate_name(self):
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValueError('invalid artist name')
+        return self
+
+
+@app.post('/api/v1/artist')
+async def artist_endpoint(body: ArtistRequest):
+    kind, result = await asyncio.to_thread(run_resolve, None, None, artist_request=body.model_dump())
+    if kind == 'ok':
+        return JSONResponse(result, headers={'Cache-Control': 'no-store'})
+    code, message = result
+    return error(code, message, 404 if code == 'ARTIST_NOT_FOUND' else 504 if code == 'RESOLVE_TIMEOUT' else 502)
 
 
 @app.get('/api/v1/audio/{token}')

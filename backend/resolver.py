@@ -102,6 +102,7 @@ def music_search_metadata(renderer):
     """
     columns = renderer.get('flexColumns') or []
     artists, duration = [], None
+    artist_ids = []
     for column in columns[1:]:
         runs = column.get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs') or []
         for run in runs:
@@ -110,6 +111,8 @@ def music_search_metadata(renderer):
             text = run.get('text', '').strip()
             if text and page_type == 'MUSIC_PAGE_TYPE_ARTIST' and text not in artists:
                 artists.append(text)
+                if re.fullmatch(r'UC[A-Za-z0-9_-]{22}', browse.get('browseId', '')):
+                    artist_ids.append(browse['browseId'])
             if re.fullmatch(r'\d+(?::\d{2}){1,2}', text):
                 duration = 0
                 for part in text.split(':'):
@@ -121,7 +124,10 @@ def music_search_metadata(renderer):
         if artist_text and not re.fullmatch(r'\d+(?::\d{2}){1,2}', artist_text):
             artists.append(artist_text)
     thumbnails = renderer.get('thumbnail', {}).get('musicThumbnailRenderer', {}).get('thumbnail', {}).get('thumbnails') or []
-    return {'artist': ', '.join(artists) or None, 'duration': duration, 'thumbnails': thumbnails}
+    metadata = {'artist': ', '.join(artists) or None, 'duration': duration, 'thumbnails': thumbnails}
+    if len(artists) == 1 and len(artist_ids) == 1:
+        metadata['artist_browse_id'] = artist_ids[0]
+    return metadata
 
 
 def register_music_search(ydl):
@@ -180,5 +186,6 @@ def search(query, page=1):
             cover = f"https://i.ytimg.com/vi/{entry['id']}/mqdefault.jpg"
         items.append({'video_id': entry['id'], 'title': title,
                       'artist': entry.get('artist') or entry.get('uploader') or entry.get('channel') or None,
-                      'duration_seconds': duration, 'cover_link': cover})
+                      'duration_seconds': duration, 'cover_link': cover,
+                      'artist_browse_id': entry.get('artist_browse_id')})
     return {'items': items, 'page': page, 'has_more': page < 100 and len(entries) > PAGE_SIZE}
