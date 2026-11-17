@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 4173 --directory dist",
-    "check": "node --check dist/app.js && node --check dist/favorites.js && node --check dist/stream.js && node --check dist/audio.js && node --check dist/liquid-glass.js",
+    "check": "node --check dist/app.js && node --check dist/artists.js && node --check dist/favorites.js && node --check dist/stream.js && node --check dist/audio.js && node --check dist/liquid-glass.js",
     "test": "node --test tests/*.test.js"
   }
 }
