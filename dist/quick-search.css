@@ -1,3 +1,10 @@
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+}
+
 .quick-search-slot {
   --quick-search-surface: #242229;
   --quick-search-border: #ffffff20;
