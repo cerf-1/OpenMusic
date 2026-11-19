@@ -57,6 +57,17 @@ await page.locator('.mini-art-button').click();
 await page.locator('.listening-actions .queue-button').click();
 await page.locator('.queue-panel').waitFor();
 await page.keyboard.press('Escape');
+for(const width of [390,1440]){
+ await page.setViewportSize({width,height:844});
+ await page.locator('.mini-art-button').click();
+ const artist=page.locator('#full-artist');
+ const name=await artist.textContent();
+ if(width===390)await artist.click();
+ else await artist.press('Enter');
+ await page.locator('.listening-room').waitFor({state:'detached'});
+ assert.equal(await page.locator('#artist-title').textContent(),name);
+ await page.locator('.artist-back').click();
+}
 assert.deepEqual(errors,[]);
-console.log('Controls, resize restoration, menu, queue, Escape and console: passed');
+console.log('Controls, resize restoration, menu, queue, Escape, artist navigation and console: passed');
 } finally { await browser.close(); }

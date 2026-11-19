@@ -376,9 +376,11 @@ function syncFullscreen() {
   root.setAttribute('aria-label',`Now playing ${t.title}`);
   for(const img of root.querySelectorAll('[data-full-art]'))if(img.getAttribute('src')!==art)img.src=art;
   root.querySelector('#full-title').textContent=t.title;
-  root.querySelector('#full-artist').textContent=t.artist || 'YouTube';
+  const artistButton=root.querySelector('#full-artist');
+  artistButton.textContent=t.artist || 'YouTube';
+  artistButton.disabled=!t.artist;
   root.querySelector('#full-title').title=t.title;
-  root.querySelector('#full-artist').title=t.artist || 'YouTube';
+  artistButton.title=artistButton.textContent;
   root.querySelector('#full-context').textContent=t.album || 'YouTube';
   root.querySelector('.fullscreen-menu').dataset.id=String(state.current);
 
@@ -389,7 +391,7 @@ function renderFullscreen() {
     <img class="fullscreen-bg" data-full-art alt="" />
     <header class="fullscreen-header"><button class="icon-button fullscreen-back" data-action="close-overlay" aria-label="Back" title="Back">${icon('down')}</button><div class="fullscreen-context"><span>NOW PLAYING</span><strong id="full-context"></strong></div><button class="icon-button fullscreen-menu" data-action="track-menu" aria-label="Current track options">${icon('dots')}</button></header>
     <div class="listening-layout"><div class="listening-art-stage"><canvas class="cover-wave" aria-hidden="true"></canvas><img class="listening-art" data-full-art alt="Current track artwork" /></div>
-    <div class="listening-details"><div class="listening-track-copy"><h2 id="full-title"></h2><p id="full-artist"></p></div></div><div class="listening-controls"></div><div class="listening-actions"></div></div>
+    <div class="listening-details"><div class="listening-track-copy"><h2 id="full-title"></h2><p><button type="button" id="full-artist" class="artist-link" data-action="open-artist"></button></p></div></div><div class="listening-controls"></div><div class="listening-actions"></div></div>
   </section>`,{type:'fullscreen'});
   fullscreenLayout=createFullscreenLayout(document.querySelector('.listening-room'),document.querySelector('.player'));
   updatePlayback();
