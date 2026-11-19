@@ -151,7 +151,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #c5afea; outline-
 .track-row .icon-button { width: 42px; height: 42px; }
 .track-row .icon-button svg { width: 19px; height: 19px; }
 .page-title { font-size: clamp(38px, 3.6vw, 54px); }
-.large-search { min-height: 66px; }
+.large-search { min-height: 66px; border-radius: 999px; }
 .large-search input { font-size: 16px; }
 .mood-card { min-height: 180px; border-radius: 16px; }
 .mood-card strong { font-size: 28px; }
@@ -231,7 +231,7 @@ input[type=range] { background: linear-gradient(90deg, #bca8e3 var(--fill,0%), #
   .main-shell { padding: 0 20px 190px; }
   .topbar { height: 74px; }
   .search-trigger { width: 48px; height: 48px; padding: 0; border-radius: 50%; }
-  .mobile-avatar { width: 42px; height: 42px; font-size: 14px; }
+  .mobile-avatar { width: auto; min-width: 42px; height: 42px; padding: 0 11px; border-radius: 999px; font-size: 14px; }
   .intro { margin: 15px 0 22px; }
   .intro h1 { font-size: 35px; letter-spacing: -1.8px; }
   .view-tabs { gap: 8px; margin-bottom: 21px; }
@@ -526,4 +526,32 @@ button:disabled { opacity: .4; cursor: default; }
 #account-status:empty { display:none; }
 .account-actions { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0; }
 .user-profile > span:nth-child(2) { overflow:hidden; text-overflow:ellipsis; }
+.sign-in-backdrop {
+  align-items: center;
+  padding: 20px;
+  background: rgb(12 8 19 / .62);
+  -webkit-backdrop-filter: blur(9px);
+  backdrop-filter: blur(9px);
+}
+.sign-in-modal {
+  display: grid;
+  place-items: center;
+  width: 340px;
+  padding: 52px 20px 30px;
+  background: #1c1824;
+  box-shadow: 0 16px 44px rgb(0 0 0 / .48);
+}
+.sign-in-modal .telegram-sign-in {
+  width: 271px;
+  max-width: 100%;
+  min-height: 48px;
+  gap: 8px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #119af5;
+  color: #fff;
+  font: 500 17px/1.25 system-ui, sans-serif;
+}
+.telegram-sign-in svg { width: 19px; height: 19px; flex: none; }
 button:disabled { cursor:wait; opacity:.6; }

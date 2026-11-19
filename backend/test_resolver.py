@@ -10,7 +10,7 @@ def fmt(ext, codec, abr, **extra):
 
 def test_stream_selection():
     assert choose_stream([fmt('webm', 'opus', 256), fmt('m4a', 'mp4a.40.2', 64), fmt('m4a', 'mp4a.40.2', 128, url=URL+'2')]) == URL+'2'
-    with pytest.raises(ResolveError, match='Аудиопоток'):
+    with pytest.raises(ResolveError, match='audio stream'):
         choose_stream([fmt('m4a', 'mp4a', 128, fragments=[{}]), fmt('m4a', 'mp4a', 128, protocol='m3u8_native')])
 
 def test_urls_and_cover():

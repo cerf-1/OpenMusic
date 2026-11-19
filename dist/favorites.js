@@ -15,12 +15,12 @@ export class FavoritesClient {
         ...(body ? {body: JSON.stringify(body)} : {})
       });
     } catch {
-      throw new Error('Нет связи с сервером. Изменение не подтверждено.');
+      throw new Error('Could not reach the server. Your change could not be confirmed.');
     }
     if (response.status === 401) { this.csrf = ''; this.onUnauthorized(); }
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      throw new Error(data.error?.message || 'Не удалось сохранить. Повторите действие.');
+      throw new Error(data.error?.message || 'Could not save your change. Try again.');
     }
     return response.status === 204 ? null : response.json();
   }

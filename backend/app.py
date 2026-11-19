@@ -51,7 +51,7 @@ async def private_responses(request: Request, call_next):
 
 @app.exception_handler(pymysql.MySQLError)
 async def database_unavailable(request: Request, exc):
-    return error('DATABASE_UNAVAILABLE', 'База данных временно недоступна. Повторите позже', 503)
+    return error('DATABASE_UNAVAILABLE', 'The database is temporarily unavailable. Try again later.', 503)
 
 
 @app.exception_handler(HTTPException)
@@ -83,7 +83,7 @@ def error(code, message, status):
 
 @app.exception_handler(RequestValidationError)
 async def invalid_request(request: Request, exc: RequestValidationError):
-    return error('INVALID_REQUEST', 'Некорректный запрос', 422)
+    return error('INVALID_REQUEST', 'Invalid request.', 422)
 
 
 def worker(conn, query, video_id, page=None, artist_request=None):
@@ -102,7 +102,7 @@ def worker(conn, query, video_id, page=None, artist_request=None):
         conn.send(('error', (exc.code, exc.message)))
     except Exception as exc:
         log.warning('Resolve failed: %s', type(exc).__name__)
-        failure = ('ARTIST_UNAVAILABLE', 'Не удалось загрузить профиль артиста') if artist_request is not None else ('RESOLVE_FAILED', 'Не удалось получить данные трека')
+        failure = ('ARTIST_UNAVAILABLE', 'Could not load the artist profile') if artist_request is not None else ('RESOLVE_FAILED', 'Could not load track details.')
         conn.send(('error', failure))
     finally:
         conn.close()
@@ -120,9 +120,9 @@ def run_resolve(query, video_id, timeout=30, page=None, artist_request=None):
             try:
                 return parent.recv()
             except EOFError:
-                return ('error', ('RESOLVE_FAILED', 'Не удалось получить данные трека'))
+                return ('error', ('RESOLVE_FAILED', 'Could not load track details.'))
         log.warning('Resolve timed out')
-        return ('error', ('RESOLVE_TIMEOUT', 'Превышено время ожидания'))
+        return ('error', ('RESOLVE_TIMEOUT', 'The request timed out.'))
     finally:
         parent.close()
         child.close()

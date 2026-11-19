@@ -38,14 +38,14 @@ def set_cookie(response, name, value, seconds):
 def session(request: Request):
     token = request.cookies.get(settings.SESSION_COOKIE, '')
     if not re.fullmatch(r'[A-Za-z0-9_-]{43}', token):
-        raise HTTPException(401, 'Войдите через Telegram')
+        raise HTTPException(401, 'Sign in with Telegram')
     with database() as cursor:
         cursor.execute('SELECT u.id, u.name, u.username, u.avatar, s.csrf_token FROM sessions s '
                        'JOIN users u ON u.id=s.user_id WHERE s.token_hash=%s AND s.expires_at>UTC_TIMESTAMP(6)',
                        (digest(token),))
         user = cursor.fetchone()
     if not user:
-        raise HTTPException(401, 'Сессия истекла. Войдите снова')
+        raise HTTPException(401, 'Your session has expired. Sign in again.')
     return user
 
 
@@ -53,14 +53,14 @@ def mutation(request: Request, user=Depends(session)):
     origin = request.headers.get('origin')
     if origin not in [settings.PUBLIC_ORIGIN, *settings.ALLOWED_ORIGINS] or not secrets.compare_digest(
             request.headers.get('x-csrf-token', ''), user['csrf_token']):
-        raise HTTPException(403, 'Обновите страницу и повторите действие')
+        raise HTTPException(403, 'Refresh the page and try again.')
     return user
 
 
 @router.get('/auth/telegram/start')
 def start():
     if not settings.CLIENT_ID or not settings.CLIENT_SECRET:
-        raise HTTPException(503, 'Вход через Telegram ещё не настроен')
+        raise HTTPException(503, 'Telegram sign-in is not configured yet.')
     state, browser, verifier = (secrets.token_urlsafe(32) for _ in range(3))
     with database() as cursor:
         cursor.execute('DELETE FROM oauth_states WHERE expires_at<=UTC_TIMESTAMP(6)')
@@ -101,9 +101,9 @@ def verify_token(token):
             raise jwt.InvalidTokenError('Invalid picture')
         return claims
     except httpx.HTTPError:
-        raise HTTPException(502, 'Telegram временно недоступен') from None
+        raise HTTPException(502, 'Telegram is temporarily unavailable.') from None
     except (jwt.PyJWTError, ValueError, KeyError, TypeError):
-        raise HTTPException(401, 'Недействительный токен Telegram') from None
+        raise HTTPException(401, 'Invalid Telegram token.') from None
 
 
 @router.get('/auth/telegram/callback')
@@ -116,23 +116,23 @@ def callback(request: Request, state: str = Query(max_length=128),
                        'AND expires_at>UTC_TIMESTAMP(6) FOR UPDATE', (digest(state),))
         pending = cursor.fetchone()
         if not pending or not secrets.compare_digest(pending['browser_hash'], digest(browser)):
-            raise HTTPException(401, 'Недействительный или использованный state')
+            raise HTTPException(401, 'The sign-in request is invalid or has already been used.')
         cursor.execute('DELETE FROM oauth_states WHERE state_hash=%s', (digest(state),))
     if not code:
-        raise HTTPException(401, 'Вход отменён')
+        raise HTTPException(401, 'Sign-in was canceled.')
     try:
         response = httpx.post(settings.ISSUER + '/token', data={
             'grant_type': 'authorization_code', 'code': code, 'redirect_uri': settings.CALLBACK_URL,
             'client_id': settings.CLIENT_ID, 'code_verifier': pending['verifier']},
             auth=(settings.CLIENT_ID, settings.CLIENT_SECRET), timeout=8)
         if response.status_code in (400, 401):
-            raise HTTPException(401, 'Код Telegram недействителен')
+            raise HTTPException(401, 'Invalid Telegram authorization code.')
         response.raise_for_status()
         claims = verify_token(response.json()['id_token'])
     except httpx.HTTPError:
-        raise HTTPException(502, 'Telegram временно недоступен') from None
+        raise HTTPException(502, 'Telegram is temporarily unavailable.') from None
     except (ValueError, KeyError, TypeError):
-        raise HTTPException(401, 'Некорректный ответ Telegram') from None
+        raise HTTPException(401, 'Invalid response from Telegram.') from None
     token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     with database() as cursor:
         cursor.execute('INSERT INTO users (telegram_issuer,telegram_subject,name,username,avatar) '
@@ -195,7 +195,7 @@ def identity(kind, source, source_id):
     valid = (kind == 'track' and source == 'youtube' and re.fullmatch(r'[A-Za-z0-9_-]{11}', source_id)
              or source == 'demo' and source_id in (DEMO_TRACKS if kind == 'track' else DEMO_ALBUMS))
     if not valid:
-        raise HTTPException(422, 'Неизвестный тип, источник или ID')
+        raise HTTPException(422, 'Unknown type, source, or ID.')
 
 
 @router.get('/likes')

@@ -14,7 +14,8 @@ try {
   const json=(route,status,data)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   await page.route('**/api/v1/**',async route=>{
     const request=route.request(),url=new URL(request.url()),path=url.pathname;
-    if(path.endsWith('/auth/me'))return json(route,user?200:401,user?{user,csrf_token:'csrf'}:{error:{message:'Войдите'}});
+    if(path.endsWith('/auth/me'))return json(route,user?200:401,user?{user,csrf_token:'csrf'}:{error:{message:'Sign in with Telegram'}});
+    if(path.endsWith('/auth/telegram/start'))return route.fulfill({status:204});
     if(path.endsWith('/auth/logout')){user=null;return route.fulfill({status:204});}
     if(path.endsWith('/resolve')){resolveCalls.push(request.postDataJSON());return json(route,502,{error:{message:'Test stream unavailable'}});}
     if(path.endsWith('/search'))return json(route,200,{items:[],has_more:false,page:1});
@@ -22,7 +23,7 @@ try {
     if(path.startsWith('/api/v1/likes/')){
       assert.equal(request.headers()['x-csrf-token'],'csrf');
       const [type,source,source_id]=path.slice('/api/v1/likes/'.length).split('/');
-      if(failSave||source_id===failImportKey)return json(route,503,{error:{message:'База данных недоступна'}});
+      if(failSave||source_id===failImportKey)return json(route,503,{error:{message:'The database is unavailable.'}});
       if(request.method()==='DELETE')saved[type]=saved[type].filter(item=>item.source_id!==source_id);
       else if(!saved[type].some(item=>item.source_id===source_id))saved[type].unshift({type,source,source_id,...request.postDataJSON()});
       return request.method()==='DELETE'?route.fulfill({status:204}):json(route,200,{saved:true});
@@ -30,11 +31,20 @@ try {
     return route.abort();
   });
   await page.goto(origin);
-  await page.locator('.user-profile').filter({hasText:'Войти через Telegram'}).waitFor();
+  const signIn=page.getByRole('dialog',{name:'Sign in'});
+  const telegram=signIn.getByRole('button',{name:'Sign in with Telegram',exact:true});
+  const guest=page.getByRole('button',{name:'Guest',exact:true});
+  const breadcrumb=await page.locator('#breadcrumb').textContent();
+  await guest.click();
+  await telegram.waitFor();
+  assert.equal(await telegram.locator('svg').count(),1);
+  assert.equal(await page.locator('#breadcrumb').textContent(),breadcrumb);
+  await page.keyboard.press('Escape');
+  await signIn.waitFor({state:'hidden'});
+  assert.equal(await guest.evaluate(button=>button===document.activeElement),true);
   await page.locator('[data-action="like"][data-id="0"]').first().click();
-  await page.getByRole('heading',{name:'Вход через Telegram'}).waitFor();
+  await telegram.waitFor();
   assert.equal(saved.track.length,0);
-  await page.locator('[data-action="close-overlay"]').click();
   // Enter an account with a persisted YouTube favorite; no search is needed.
   user={id:1,name:'Test Listener',username:'listener'};
   saved.track=[{type:'track',source:'youtube',source_id:'Abcdefghijk',title:'Saved YouTube',artist:'Remote Artist',cover:'https://i.ytimg.com/vi/Abcdefghijk/mqdefault.jpg',duration_seconds:123}];
@@ -63,29 +73,34 @@ try {
   // Legacy likes are untouched until consent, and survive a partial failure.
   await page.evaluate(()=>localStorage.setItem('openmusic-likes','[0,1,1,999]'));
   await page.reload();
-  await page.getByRole('button',{name:'Да, импортировать'}).waitFor();
+  await page.getByRole('button',{name:'Import likes'}).waitFor();
   assert.equal(await page.evaluate(()=>localStorage.getItem('openmusic-likes')),'[0,1,1,999]');
   failImportKey='ocean-drive';
-  await page.getByRole('button',{name:'Да, импортировать'}).click();
-  await page.locator('#profile-error').filter({hasText:'База данных недоступна'}).waitFor();
+  await page.getByRole('button',{name:'Import likes'}).click();
+  await page.locator('#profile-error').filter({hasText:'The database is unavailable.'}).waitFor();
   assert.equal(await page.evaluate(()=>localStorage.getItem('openmusic-likes')),'[0,1,1,999]');
   failImportKey='';
-  await page.getByRole('button',{name:'Да, импортировать'}).click();
+  await page.getByRole('button',{name:'Import likes'}).click();
   await page.waitForFunction(()=>localStorage.getItem('openmusic-likes')===null);
   assert.equal(saved.track.filter(item=>item.source_id==='weightless').length,1);
   assert.equal(saved.track.filter(item=>item.source_id==='ocean-drive').length,1);
-  await page.getByRole('button',{name:'Выйти',exact:true}).click();
-  await page.locator('.user-profile').filter({hasText:'Войти через Telegram'}).waitFor();
+  await page.getByRole('button',{name:'Sign out',exact:true}).click();
+  await page.getByRole('button',{name:'Guest',exact:true}).waitFor();
   await page.locator('[data-action="navigate"][data-view="liked"]').first().click();
   assert.equal(await page.locator('.track-row').count(),0);
   assert.equal(await page.getByText('Saved YouTube',{exact:true}).count(),0);
-  await page.locator('[data-action="navigate"][data-view="liked-albums"]').first().click();
-  assert.equal(await page.locator('.album-card').count(),0);
-  // Mobile guest profile remains accessible.
+  await page.locator('.nav-item[data-view="library"]').click();
+  await page.getByRole('heading',{name:'Your Library'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Liked Albums'}).count(),0);
+  // The mobile guest control opens the same dialog and Telegram endpoint.
   await page.setViewportSize({width:390,height:844});
-  await page.locator('.mobile-avatar').click();
-  await page.getByRole('heading',{name:'Вход через Telegram'}).waitFor();
+  await page.getByRole('button',{name:'Guest',exact:true}).click();
+  await telegram.waitFor();
   if(process.env.UI_SCREENSHOT_DIR)await page.screenshot({animations:'disabled',path:`${process.env.UI_SCREENSHOT_DIR}/openmusic-mobile.png`});
+  await Promise.all([
+    page.waitForRequest(request=>new URL(request.url()).pathname==='/api/v1/auth/telegram/start'),
+    telegram.click()
+  ]);
   assert.deepEqual(errors,[]);
   console.log('Browser account regression passed: guest, restored YouTube/resolver, failed save, independent album, consent/failed import/retry, logout, mobile.');
   await context.close();

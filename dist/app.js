@@ -1,6 +1,6 @@
 import { artistKey, artistProfile, catalogArtists } from './artists.js';
 import { API_BASE } from './config.js';
-import { FavoritesClient, favoriteIdentity, favoriteMetadata, legacyDemoKeys } from './favorites.js';
+import { FavoritesClient, favoriteIdentity, favoriteMetadata, legacyDemoKeys } from './favorites.js?v=1';
 import { createArtworkWave } from './artwork-wave.js?v=6';
 import { AudioEngine, searchTracks } from './stream.js?v=8';
 import { createFullscreenLayout } from './fullscreen.js?v=5';
@@ -33,6 +33,7 @@ const paths = {
   left:'<path d="m14 5-7 7 7 7"/>',
   right:'<path d="m10 5 7 7-7 7"/>',
   arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
+  telegram:'<path fill="currentColor" stroke="none" fill-rule="evenodd" d="M22 3.2 2.3 10.8c-1.3.5-1.3 1.3-.3 1.7l5.1 1.6 1.9 5.8c.2.6.5.8.9.8.5 0 .8-.2 1.1-.5l2.5-2.4 5 3.7c.9.5 1.6.2 1.8-.9l3.2-15.8c.3-1.3-.5-2-1.5-1.6ZM8 13.7l11.5-7.2c.5-.3 1-.1.6.2l-9.4 8.5-.4 3.8L8 13.7Z"/>',
   headphones:'<path d="M3 13v-1a9 9 0 0 1 18 0v1M3 12h3v8H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 1-2Zm18 0h-3v8h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-1-2Z"/>',
   close:'<path d="m6 6 12 12M6 18 18 6"/>',
   down:'<path d="m5 9 7 7 7-7"/>',
@@ -85,18 +86,18 @@ function toast() {} // No floating notifications anywhere in the interface.
 function coverContent(album) { return `<div class="cover-text"><span class="cover-top">${album.tag}</span><div class="cover-bottom"><div class="cover-title">${album.cover}</div><small>VOL. 0${album.id+1}</small></div></div>`; }
 function albumIsCurrent(id) { const ids=albums[id].tracks;return state.queue.length===ids.length && ids.every((track,i)=>state.queue[i]===track); }
 const playbackGlyph = document.querySelector('.main-play').innerHTML;
-function albumCard(id, badge=false) { const a=albums[id]; return `<article class="album-card"><div class="album-art"><img src="./assets/${a.art}" alt="${esc(a.title)} artwork" loading="lazy" />${coverContent(a)}${badge?'<span class="mix-tag">FOR YOU</span>':''}<button class="album-open" data-action="open-album" data-id="${id}" aria-label="Open ${esc(a.title)}"></button><button class="card-play album-play" data-playing="${state.playing && albumIsCurrent(id)}" data-action="play-album" data-id="${id}" aria-label="${state.playing && albumIsCurrent(id)?'Pause':'Play'} ${esc(a.title)}">${playbackGlyph}</button></div><button class="album-name" data-action="open-album" data-id="${id}">${a.title}</button><p class="album-subtitle">${a.subtitle}</p><button class="artist-link album-artist" data-action="open-artist" data-artist="${esc(a.artist)}">${esc(a.artist)}</button><button class="text-button" data-action="like-album" data-id="${id}" aria-pressed="${state.albumLikes.has(id)}">${state.albumLikes.has(id)?'♥ Убрать альбом':'♡ Любимый альбом'}</button></article>`; }
+function albumCard(id, badge=false) { const a=albums[id]; return `<article class="album-card"><div class="album-art"><img src="./assets/${a.art}" alt="${esc(a.title)} artwork" loading="lazy" />${coverContent(a)}${badge?'<span class="mix-tag">FOR YOU</span>':''}<button class="album-open" data-action="open-album" data-id="${id}" aria-label="Open ${esc(a.title)}"></button><button class="card-play album-play" data-playing="${state.playing && albumIsCurrent(id)}" data-action="play-album" data-id="${id}" aria-label="${state.playing && albumIsCurrent(id)?'Pause':'Play'} ${esc(a.title)}">${playbackGlyph}</button></div><button class="album-name" data-action="open-album" data-id="${id}">${a.title}</button><p class="album-subtitle">${a.subtitle}</p><button class="artist-link album-artist" data-action="open-artist" data-artist="${esc(a.artist)}">${esc(a.artist)}</button><button class="text-button" data-action="like-album" data-id="${id}" aria-pressed="${state.albumLikes.has(id)}">${state.albumLikes.has(id)?'♥ Unlike album':'♡ Like album'}</button></article>`; }
 function trackRow(id,index,{table=false,queue=false,queuePosition=null}={}) { const t=tracks[id], liked=state.likes.has(id),current=state.current===id; return `<div class="track-row ${current?'current':''}" data-track="${id}" data-action="play-track" data-id="${id}"${Number.isInteger(queuePosition)?` data-queue-position="${queuePosition}"`:""}><span class="track-number">${current&&state.playing?'<span class="equalizer"><i></i><i></i><i></i></span>':String(index+1).padStart(2,'0')}</span><button class="track-thumb" style="padding:0" data-action="play-track" data-id="${id}" aria-label="Play ${esc(t.title)}"><img class="track-thumb" src="${esc(t.cover || `./assets/${t.art}`)}" alt="" loading="lazy" /></button><div class="track-details"><button class="track-text" data-action="play-track" data-id="${id}"><span class="track-title">${esc(t.title)}</span></button><button class="track-artist artist-link" data-action="open-artist" data-id="${id}" ${t.artist?'':'disabled'}>${esc(t.artist)}</button></div>${table?`<span class="track-album">${esc(t.album)}</span>`:''}<button class="icon-button ${liked?'liked':''}" data-action="like" data-id="${id}" aria-label="${liked?'Remove from Liked Songs':'Add to Liked Songs'}: ${esc(t.title)}" aria-pressed="${liked}">${icon('heart')}</button><time class="track-duration">${t.duration>0?formatTime(t.duration):'—:—'}</time><button class="icon-button" data-action="${queue?'remove-queue':'track-menu'}" data-id="${id}" aria-label="${queue?'Remove from queue':'Track options'} ${esc(t.title)}">${icon(queue?'close':'dots')}</button></div>`; }
 function heroMarkup() { const s=heroSlides[state.hero],a=albums[s.album]; return `<section class="hero" aria-label="${s.tag}"><img class="hero-image" src="./assets/${a.art}" alt="${state.hero===0?'Sunset over mountain ridges':a.title}" /><div class="hero-content"><div class="hero-tag">${s.tag}</div><h2>${s.title}</h2><p class="hero-description">${s.description}</p><div class="hero-actions"><button class="pill-button primary" data-action="play-album" data-id="${s.album}">${icon('play')}Play</button><button class="icon-button hero-save ${state.albumLikes.has(a.id)?'liked':''}" data-action="like-album" data-id="${a.id}" aria-label="Like album">${icon('heart')}</button></div></div><div class="hero-meta">${icon('headphones')}${s.meta}</div><div class="hero-dots">${heroSlides.map((_,i)=>`<i class="${i===state.hero?'active':''}"></i>`).join('')}</div><div class="hero-pagination"><span><strong>0${state.hero+1}</strong> / 03</span><button class="icon-button" data-action="hero-prev" aria-label="Previous collection">${icon('left')}</button><button class="icon-button" data-action="hero-next" aria-label="Next collection">${icon('right')}</button></div></section>`; }
 function sectionHead(title,action='all-albums',label='Show all') { return `<div class="section-heading"><h2>${title}</h2><button class="text-button" data-action="${action}">${label}${icon('right')}</button></div>`; }
 function homeContent() { const titles={foryou:'Made for you',new:'Fresh finds',moods:'Pick a mood'}; return `${heroMarkup()}<section class="section recent-section">${sectionHead('On repeat','show-repeat','See all')}<div class="recent-tracks">${[0,1,4,6,7,10,2,3].map((id,i)=>trackRow(id,i)).join('')}</div></section>${artistSection()}<section class="section">${sectionHead(titles[state.tab])}${state.tab==='moods'?moodGrid():`<div class="album-grid">${(state.tab==='new'?[3,2,5,1,4]:[1,2,3,4,5]).map(id=>albumCard(id)).join('')}</div>`}</section>`; }
 function moodGrid() { const labels=['Unwind','Find a beat','Feel it','Slow down','Get lost','Daydream']; return `<div class="mood-grid">${[1,2,3,4,5,0].map((id,i)=>`<button class="mood-card" data-action="open-album" data-id="${id}"><img src="./assets/${albums[id].art}" alt="" /><strong>${labels[i]}</strong><span>${icon('arrowup')}</span></button>`).join('')}</div>`; }
 function searchContent() { return `<section class="search-page"><h1 class="page-title">Search</h1><form id="resolve-form" class="large-search">${icon('search')}<input id="search-input" type="search" placeholder="Songs, artists, or moods" autocomplete="off" aria-label="Search music" /><button class="icon-button" data-action="clear-search" aria-label="Clear search" type="button">${icon('close')}</button><button class="text-button" type="submit">Search</button></form><div id="search-results" aria-live="polite"><p class="search-meta">Browse by mood</p>${moodGrid()}<section class="section">${sectionHead('Made to discover','show-discover','See all')}${[0,3,2].map((id,i)=>trackRow(id,i)).join('')}</section></div></section>`; }
-function libraryContent() { return `<section class="library-page"><h1 class="page-title">Your Library</h1><div class="library-actions"><button class="tab active" data-action="navigate" data-view="liked">Liked Songs · ${state.likes.size}</button><button class="tab" data-action="navigate" data-view="liked-albums">Любимые альбомы · ${state.albumLikes.size}</button><button class="secondary-button" data-action="new-playlist">${icon('plus')}Create playlist</button></div>${artistSection()}<div class="section-heading"><h2>Playlists</h2><span class="eyebrow">${6+state.playlists.length} playlists</span></div><div class="album-grid">${albums.map(a=>albumCard(a.id)).join('')}</div>${state.playlists.length?`<section class="section"><div class="section-heading"><h2>Made by you</h2></div>${state.playlists.map((p,i)=>`<button class="collection-item" data-action="custom-playlist" data-id="${i}"><span class="collection-cover">${icon('music')}</span><span>${esc(p.name)}<small>${p.tracks.length} ${trackWord(p.tracks.length)}</small></span>${icon('right')}</button>`).join('')}</section>`:''}</section>`; }
-function likedContent() { const ids=[...state.likes]; return `<section class="library-page"><div class="collection-heading"><div class="large-heart">${icon('heart')}</div><div><p class="modal-eyebrow">YOUR COLLECTION</p><h1>Liked Songs</h1><p>${ids.length} ${trackWord(ids.length)} · ${state.user?'Saved for you':'Войдите через Telegram'}</p></div></div>${ids.length?`<div class="library-actions"><button class="pill-button primary" data-action="play-liked">${icon('play')}Play liked songs</button></div>${trackTable(ids)}`:`<div class="empty-state"><span>${icon('heart')}</span><h2>Your favorites live here.</h2><p>Like a track to keep it close.</p><button class="pill-button primary" data-action="navigate" data-view="home">Explore music ${icon('arrow')}</button></div>`}</section>`; }
+function libraryContent() { return `<section class="library-page"><h1 class="page-title">Your Library</h1><div class="library-actions"><button class="tab active" data-action="navigate" data-view="liked">Liked Songs · ${state.likes.size}</button><button class="secondary-button" data-action="new-playlist">${icon('plus')}Create playlist</button></div>${artistSection()}<div class="section-heading"><h2>Playlists</h2><span class="eyebrow">${6+state.playlists.length} playlists</span></div><div class="album-grid">${albums.map(a=>albumCard(a.id)).join('')}</div>${state.playlists.length?`<section class="section"><div class="section-heading"><h2>Made by you</h2></div>${state.playlists.map((p,i)=>`<button class="collection-item" data-action="custom-playlist" data-id="${i}"><span class="collection-cover">${icon('music')}</span><span>${esc(p.name)}<small>${p.tracks.length} ${trackWord(p.tracks.length)}</small></span>${icon('right')}</button>`).join('')}</section>`:''}</section>`; }
+function likedContent() { const ids=[...state.likes]; return `<section class="library-page"><div class="collection-heading"><div class="large-heart">${icon('heart')}</div><div><p class="modal-eyebrow">YOUR COLLECTION</p><h1>Liked Songs</h1><p>${ids.length} ${trackWord(ids.length)}${state.user?' · Saved for you':''}</p></div></div>${ids.length?`<div class="library-actions"><button class="pill-button primary" data-action="play-liked">${icon('play')}Play liked songs</button></div>${trackTable(ids)}`:`<div class="empty-state"><span>${icon('heart')}</span><h2>Your favorites live here.</h2><p>Like a track to keep it close.</p><button class="pill-button primary" data-action="navigate" data-view="home">Explore music ${icon('arrow')}</button></div>`}</section>`; }
 function trackWord(n) { return n===1?'track':'tracks'; }
 function trackTable(ids) { return `<div class="track-table"><div class="table-labels"><span>#</span><span>TITLE</span><span>TIME</span></div>${ids.map((id,i)=>trackRow(id,i,{table:true})).join('')}</div>`; }
-function navigate(view,focusSearch=true) { cancelArtistLoad();artistHistory=[];closeQuickSearch();cancelSearch();closeOverlay(false);state.view=view;const templates={home:homeContent,search:searchContent,library:libraryContent,liked:likedContent,'liked-albums':likedAlbumsContent}; content.innerHTML=(templates[view]||homeContent)();document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(['liked','liked-albums'].includes(view)?'library':view)));const labels={home:'FOR YOU',search:'SEARCH',library:'LIBRARY',liked:'LIKED SONGS','liked-albums':'ЛЮБИМЫЕ АЛЬБОМЫ'};document.querySelector('#breadcrumb').innerHTML=`${labels[view]||'FOR YOU'}`;window.scrollTo({top:0,behavior:'instant'});refreshFavoriteButtons();if(view==='search')updateSearchButton();if(view==='search'&&focusSearch)setTimeout(()=>document.querySelector('#search-input')?.focus(),80); }
+function navigate(view,focusSearch=true) { cancelArtistLoad();artistHistory=[];closeQuickSearch();cancelSearch();closeOverlay(false);state.view=view;const templates={home:homeContent,search:searchContent,library:libraryContent,liked:likedContent}; content.innerHTML=(templates[view]||homeContent)();document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(view==='liked'?'library':view)));const labels={home:'FOR YOU',search:'SEARCH',library:'LIBRARY',liked:'LIKED SONGS'};document.querySelector('#breadcrumb').innerHTML=`${labels[view]||'FOR YOU'}`;window.scrollTo({top:0,behavior:'instant'});refreshFavoriteButtons();if(view==='search')updateSearchButton();if(view==='search'&&focusSearch)setTimeout(()=>document.querySelector('#search-input')?.focus(),80); }
 function updateSidebar() { document.querySelector('#liked-count').textContent=`${state.likes.size} ${trackWord(state.likes.size)}`;document.querySelector('#custom-playlists').innerHTML=state.playlists.map((p,i)=>`<button class="collection-item" data-action="custom-playlist" data-id="${i}"><span class="collection-cover">${icon('music')}</span><span>${esc(p.name)}<small>${p.tracks.length} ${trackWord(p.tracks.length)}</small></span></button>`).join(''); }
 let artistHistory=[], artistController=null, artistHeaderController=null;
 const artistHeaders=new Map();
@@ -110,8 +111,8 @@ function artistSection() {
 function artistHeaderMarkup(a) {
   const profile=artistHeaders.get(a.key);
   const image=a.local?a.cover:profile?.data?.header_image;
-  const message=a.local?'':profile?.status==='error'?profile.message:profile?.data&&!image?'У артиста нет доступной шапки YouTube Music.':profile?.status==='loaded'?'':'Загружаем профиль YouTube Music…';
-  return `${image?`<img class="artist-header-image" src="${esc(image)}" alt="" referrerpolicy="no-referrer" />`:''}<div class="artist-hero-shade"></div><button class="icon-button artist-back" data-action="artist-back" aria-label="Back">${icon('left')}</button><div class="artist-heading"><p class="hero-tag">ARTIST${a.genre?` · ${esc(a.genre.toUpperCase())}`:''}</p><h1 id="artist-title">${esc(profile?.data?.name || a.name)}</h1><p id="artist-track-count">${a.tracks.length} ${trackWord(a.tracks.length)} available${a.local?' · OpenMusic originals':''}</p><div class="artist-profile-status" role="status"><span>${esc(message)}</span>${profile?.status==='error'?'<button class="text-button" data-action="artist-header-retry">Повторить</button>':''}</div></div>`;
+  const message=a.local?'':profile?.status==='error'?profile.message:profile?.data&&!image?'No YouTube Music banner is available for this artist.':profile?.status==='loaded'?'':'Loading YouTube Music profile…';
+  return `${image?`<img class="artist-header-image" src="${esc(image)}" alt="" referrerpolicy="no-referrer" />`:''}<div class="artist-hero-shade"></div><button class="icon-button artist-back" data-action="artist-back" aria-label="Back">${icon('left')}</button><div class="artist-heading"><p class="hero-tag">ARTIST${a.genre?` · ${esc(a.genre.toUpperCase())}`:''}</p><h1 id="artist-title">${esc(profile?.data?.name || a.name)}</h1><p id="artist-track-count">${a.tracks.length} ${trackWord(a.tracks.length)} available${a.local?' · OpenMusic originals':''}</p><div class="artist-profile-status" role="status"><span>${esc(message)}</span>${profile?.status==='error'?'<button class="text-button" data-action="artist-header-retry">Retry</button>':''}</div></div>`;
 }
 async function loadArtistHeader() {
   const a=currentArtist();if(!a||a.local||artistHeaderController)return;
@@ -122,12 +123,12 @@ async function loadArtistHeader() {
   try {
     const response=await fetch(`${API_BASE}/api/v1/artist`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:a.name,...(a.browseId?{browse_id:a.browseId}:{})}),signal:controller.signal});
     const data=await response.json();
-    if(!response.ok)throw new Error(data.error?.message || 'Не удалось загрузить профиль артиста.');
+    if(!response.ok)throw new Error(data.error?.message || 'Could not load the artist profile.');
     if(controller.signal.aborted)return;
     artistHeaders.set(a.key,{status:'loaded',data});
   } catch(error) {
     if(controller.signal.aborted)return;
-    artistHeaders.set(a.key,{status:'error',message:error.message || 'Не удалось загрузить профиль артиста.'});
+    artistHeaders.set(a.key,{status:'error',message:error.message || 'Could not load the artist profile.'});
   } finally {
     if(artistHeaderController===controller){
       artistHeaderController=null;
@@ -155,11 +156,11 @@ function openArtist(name) {
 function backFromArtist() {
   cancelArtistLoad();const previous=artistHistory.pop();if(!previous){navigate('home');return;}
   closeOverlay(false);state.view=previous.view;state.artist=previous.artist;shownSearch=previous.shownSearch;
-  const templates={home:homeContent,library:libraryContent,liked:likedContent,'liked-albums':likedAlbumsContent,artist:artistContent};
+  const templates={home:homeContent,library:libraryContent,liked:likedContent,artist:artistContent};
   content.innerHTML=templates[state.view]?templates[state.view]():previous.html;
   const input=document.querySelector('#search-input');if(input)input.value=previous.query || '';
   document.querySelector('#breadcrumb').textContent=previous.breadcrumb;
-  document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(['liked','liked-albums'].includes(state.view)?'library':state.view)));
+  document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(state.view==='liked'?'library':state.view)));
   updatePlayback();if(state.view==='search'){document.querySelector('#search-results')?.removeAttribute('aria-busy');updateSearchButton();}
   window.scrollTo({top:previous.scroll,behavior:'instant'});content.focus({preventScroll:true});
   if(state.view==='artist')loadArtistHeader();
@@ -367,7 +368,7 @@ function toggleLike(id) { return changeFavorite('track', id); }
 function showOverlay(html,{type,id}={}) {closeQuickSearch();coverWave?.destroy();coverWave=null;fullscreenLayout?.destroy();fullscreenLayout=null;if(!state.overlay)state.returnFocus=document.activeElement;state.overlay={type,id};overlayRoot.innerHTML=html;document.body.classList.toggle('has-fullscreen',type==='fullscreen');document.body.style.overflow='hidden';hydrateIcons(overlayRoot);setTimeout(()=>overlayRoot.querySelector('input, .modal-close, button')?.focus(),50);}
 function closeOverlay(restoreFocus=true) {coverWave?.destroy();coverWave=null;fullscreenLayout?.destroy();fullscreenLayout=null;if(!state.overlay)return;overlayRoot.innerHTML='';state.overlay=null;document.body.classList.remove('has-fullscreen');document.body.style.overflow='';document.querySelector('.queue-button').setAttribute('aria-expanded','false');if(restoreFocus)state.returnFocus?.focus?.();}
 const closeButton = `<button class="icon-button modal-close" data-action="close-overlay" aria-label="Close">${icon('close')}</button>`;
-function openAlbum(id) {const a=albums[id];showOverlay(`<div class="overlay-backdrop" data-backdrop><section class="modal" role="dialog" aria-modal="true" aria-labelledby="album-dialog-title">${closeButton}<div class="modal-hero" style="background:linear-gradient(145deg,${a.tone}80,#f8f9f6)"><div class="modal-cover"><img src="./assets/${a.art}" alt="${esc(a.title)}" />${coverContent(a)}</div><div><span class="modal-eyebrow">${a.type.toUpperCase()}</span><h2 id="album-dialog-title">${a.title}</h2><p>${a.subtitle}<br><button class="artist-link" data-action="open-artist" data-artist="${esc(a.artist)}">${esc(a.artist)}</button> · OpenMusic · ${a.tracks.length} tracks · ${Math.round(a.tracks.reduce((s,id)=>s+tracks[id].duration,0)/60)} min</p></div></div><div class="modal-body"><div class="modal-actions"><button class="album-play" data-action="play-album" data-id="${id}" data-playing="${state.playing && albumIsCurrent(id)}" aria-label="${state.playing && albumIsCurrent(id)?'Pause':'Play'} ${esc(a.title)}">${playbackGlyph}</button><button class="icon-button" data-action="queue-album" data-id="${id}" aria-label="Add playlist to queue">${icon('plus')}</button><button class="secondary-button" data-action="like-album" data-id="${id}" aria-pressed="${state.albumLikes.has(id)}">${state.albumLikes.has(id)?'♥ Убрать альбом':'♡ Любимый альбом'}</button><small>OPENMUSIC SELECT</small></div>${a.tracks.map((id,i)=>trackRow(id,i)).join('')}<p class="modal-note">Original sounds made for OpenMusic.</p></div></section></div>`,{type:'album',id});refreshFavoriteButtons();}
+function openAlbum(id) {const a=albums[id];showOverlay(`<div class="overlay-backdrop" data-backdrop><section class="modal" role="dialog" aria-modal="true" aria-labelledby="album-dialog-title">${closeButton}<div class="modal-hero" style="background:linear-gradient(145deg,${a.tone}80,#f8f9f6)"><div class="modal-cover"><img src="./assets/${a.art}" alt="${esc(a.title)}" />${coverContent(a)}</div><div><span class="modal-eyebrow">${a.type.toUpperCase()}</span><h2 id="album-dialog-title">${a.title}</h2><p>${a.subtitle}<br><button class="artist-link" data-action="open-artist" data-artist="${esc(a.artist)}">${esc(a.artist)}</button> · OpenMusic · ${a.tracks.length} tracks · ${Math.round(a.tracks.reduce((s,id)=>s+tracks[id].duration,0)/60)} min</p></div></div><div class="modal-body"><div class="modal-actions"><button class="album-play" data-action="play-album" data-id="${id}" data-playing="${state.playing && albumIsCurrent(id)}" aria-label="${state.playing && albumIsCurrent(id)?'Pause':'Play'} ${esc(a.title)}">${playbackGlyph}</button><button class="icon-button" data-action="queue-album" data-id="${id}" aria-label="Add playlist to queue">${icon('plus')}</button><button class="secondary-button" data-action="like-album" data-id="${id}" aria-pressed="${state.albumLikes.has(id)}">${state.albumLikes.has(id)?'♥ Unlike album':'♡ Like album'}</button><small>OPENMUSIC SELECT</small></div>${a.tracks.map((id,i)=>trackRow(id,i)).join('')}<p class="modal-note">Original sounds made for OpenMusic.</p></div></section></div>`,{type:'album',id});refreshFavoriteButtons();}
 function renderQueue() {const current=tracks[state.current],upNext=state.queue.slice(state.queuePosition+1);showOverlay(`<div class="overlay-backdrop queue-backdrop" data-backdrop><section class="queue-panel" role="dialog" aria-modal="true" aria-labelledby="queue-heading">${closeButton}<h2 id="queue-heading">Queue</h2><h3>Now playing</h3>${trackRow(current.id,0,{queuePosition:state.queuePosition})}<h3>Up next · ${upNext.length} tracks</h3><p class="queue-description">Your next tracks.</p>${upNext.length?upNext.map((id,i)=>trackRow(id,i,{queue:true,queuePosition:state.queuePosition+1+i})).join(''):'<p class="queue-empty">Your queue is empty.</p>'}<button class="secondary-button" data-action="reset-queue">${icon('shuffle')}Refresh queue</button></section></div>`,{type:'queue'});document.querySelector('.queue-button').setAttribute('aria-expanded','true');}
 function syncFullscreen() {
   const root=document.querySelector('.listening-room');if(!root)return;
@@ -482,7 +483,7 @@ document.addEventListener('error', event => {
   if (!(image instanceof HTMLImageElement)) return;
   if(image.classList.contains('artist-header-image')){
     image.remove();const a=currentArtist();
-    if(a&&!a.local){artistHeaders.set(a.key,{status:'error',message:'Не удалось загрузить изображение профиля.'});document.querySelector('.artist-hero').innerHTML=artistHeaderMarkup(a);}
+    if(a&&!a.local){artistHeaders.set(a.key,{status:'error',message:'Could not load the artist profile image.'});document.querySelector('.artist-hero').innerHTML=artistHeaderMarkup(a);}
     return;
   }
   const row=image.closest('.track-row');
@@ -503,9 +504,6 @@ document.addEventListener('error', event => {
 
 // Account state never comes from localStorage. Each async read is scoped to a login epoch.
 const favorites = new FavoritesClient(clearAccount);
-function likedAlbumsContent() {
-  return `<section class="library-page"><h1 class="page-title">Любимые альбомы</h1>${state.user?'':'<p>Войдите через Telegram, чтобы увидеть свои альбомы.</p>'}<div class="album-grid">${[...state.albumLikes].map(id=>albumCard(id)).join('')}</div></section>`;
-}
 function clearAccount() {
   const hadAccount=!!state.user;
   ++state.authEpoch;
@@ -527,14 +525,14 @@ function clearAccount() {
   }
   state.user=null;state.authError='';state.likes.clear();state.albumLikes.clear();state.favoriteErrors.clear();
   favorites.csrf='';
-  closeOverlay(false);
+  if(hadAccount||state.overlay?.type!=='sign-in')closeOverlay(false);
   renderAccount();refreshFavoritesView();
 }
 function renderAccount() {
-  const name=state.user?.name || 'Войти через Telegram';
-  document.querySelector('.user-profile').innerHTML=`<span class="avatar">${esc(name[0])}</span><span>${esc(name)}</span>${icon('chevrons')}`;
+  const name=state.user?.name || 'Guest';
+  document.querySelector('.user-profile').innerHTML=`<span class="avatar" aria-hidden="true">${esc(name[0])}</span><span>${esc(name)}</span>${icon('chevrons')}`;
   const mobile=document.querySelector('.mobile-avatar');
-  mobile.textContent=state.user?name[0]:'↗';mobile.setAttribute('aria-label',name);
+  mobile.textContent=state.user?name[0]:name;mobile.setAttribute('aria-label',name);
   let status=document.querySelector('#account-status');
   if(!status){status=document.createElement('div');status.id='account-status';status.setAttribute('role','status');content.before(status);}
   status.textContent=state.authError;
@@ -542,7 +540,6 @@ function renderAccount() {
 function refreshFavoritesView() {
   updateSidebar();updatePlayback();
   if(state.view==='liked')content.innerHTML=likedContent();
-  if(state.view==='liked-albums')content.innerHTML=likedAlbumsContent();
   refreshFavoriteButtons();
 }
 function refreshFavoriteButtons() {
@@ -552,8 +549,8 @@ function refreshFavoriteButtons() {
     const liked=(type==='track'?state.likes:state.albumLikes).has(id);
     button.classList.toggle('liked',liked);button.setAttribute('aria-pressed',String(liked));
     button.disabled=state.favoritesBusy;
-    if(type==='album'&&!button.classList.contains('hero-save'))button.textContent=liked?'♥ Убрать альбом':'♡ Любимый альбом';
-    button.setAttribute('aria-label',`${liked?'Убрать':'Добавить'} ${type==='album'?'альбом':'трек'} в избранное`);
+    if(type==='album'&&!button.classList.contains('hero-save'))button.textContent=liked?'♥ Unlike album':'♡ Like album';
+    button.setAttribute('aria-label',`${liked?'Unlike':'Like'} ${type}`);
     const old=button.nextElementSibling;
     if(old?.classList.contains('favorite-error'))old.remove();
     const message=state.favoriteErrors.get(`${type}:${id}`);
@@ -586,9 +583,10 @@ async function loadAccount() {
     const user=await favorites.me();
     if(epoch!==state.authEpoch)return;
     state.user=user;state.authError='';renderAccount();
+    if(state.overlay?.type==='sign-in')showProfile();
     await readFavorites(epoch);
     if(epoch!==state.authEpoch)return;
-    if(legacyDemoKeys(readSaved('openmusic-likes',[])).length || state.overlay?.type==='info')showProfile();
+    if(legacyDemoKeys(readSaved('openmusic-likes',[])).length || state.overlay?.type==='profile')showProfile();
   } catch(error) {
     // An absent/expired session has already cleared account state in the client.
     if(epoch!==state.authEpoch)return;
@@ -596,9 +594,17 @@ async function loadAccount() {
   } finally {state.favoritesBusy=false;refreshFavoriteButtons();}
 }
 function showProfile() {
-  if(!state.user){smallModal('Вход через Telegram',`<p>Сохраняйте любимые треки и альбомы на всех устройствах.</p><button class="pill-button primary" data-action="login">Войти через Telegram</button>${state.authError?`<p role="alert">${esc(state.authError)}</p>`:''}`);return;}
+  if(!state.user){
+    showOverlay(`<div class="overlay-backdrop sign-in-backdrop" data-backdrop>
+      <section class="modal sign-in-modal" role="dialog" aria-modal="true" aria-label="Sign in">
+        ${closeButton}
+        <button type="button" class="pill-button telegram-sign-in" data-action="login">${icon('telegram')}Sign in with Telegram</button>
+      </section>
+    </div>`,{type:'sign-in'});
+    return;
+  }
   const legacy=legacyDemoKeys(readSaved('openmusic-likes',[]));
-  smallModal(esc(state.user.name),`<p>${state.user.username?'@'+esc(state.user.username):'Telegram'}</p><p>${state.likes.size} любимых треков · ${state.albumLikes.size} любимых альбомов</p><div class="account-actions"><button class="secondary-button" data-action="retry-account">Обновить избранное</button><button class="secondary-button" data-action="logout">Выйти</button></div>${legacy.length?`<p>На этом устройстве есть старые лайки (${legacy.length}). Перенести распознанные демотреки в этот аккаунт?</p><button class="pill-button primary" data-action="import-likes">Да, импортировать</button><p>Можно закрыть окно и вернуться позже.</p>`:''}<p id="profile-error" role="alert"></p>`);
+  smallModal(esc(state.user.name),`<p>${state.user.username?'@'+esc(state.user.username):'Telegram'}</p><p>${state.likes.size} liked ${state.likes.size===1?'song':'songs'} · ${state.albumLikes.size} liked ${state.albumLikes.size===1?'album':'albums'}</p><div class="account-actions"><button class="secondary-button" data-action="retry-account">Refresh likes</button><button class="secondary-button" data-action="logout">Sign out</button></div>${legacy.length?`<p>Import previously liked demo tracks from this device into your account (${legacy.length})?</p><button class="pill-button primary" data-action="import-likes">Import likes</button><p>You can close this window and import your likes later.</p>`:''}<p id="profile-error" role="alert"></p>`,'profile');
 }
 async function logoutAccount() {
   if(state.favoritesBusy)return;

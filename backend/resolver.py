@@ -37,7 +37,7 @@ def choose_stream(formats):
             abr = abr if isinstance(abr, (int, float)) and math.isfinite(abr) else 0
             candidates.append((group, abr, f['url']))
     if not candidates:
-        raise ResolveError('STREAM_UNAVAILABLE', 'Аудиопоток недоступен')
+        raise ResolveError('STREAM_UNAVAILABLE', 'The audio stream is unavailable.')
     return max(candidates, key=lambda c: (c[0], c[1]))[2]
 
 
@@ -50,7 +50,7 @@ def choose_cover(info):
         return max(images, key=area)['url']
     if valid_url(info.get('thumbnail'), True):
         return info['thumbnail']
-    raise ResolveError('COVER_UNAVAILABLE', 'Обложка недоступна')
+    raise ResolveError('COVER_UNAVAILABLE', 'Artwork is unavailable.')
 
 
 class SafeLogger:
@@ -75,21 +75,21 @@ def resolve(query=None, video_id=None):
             entries = (result or {}).get('entries') or []
             video_id = next((e['id'] for e in entries if isinstance(e, dict) and isinstance(e.get('id'), str) and ID.fullmatch(e['id'])), None)
             if not video_id:
-                raise ResolveError('TRACK_NOT_FOUND', 'Трек не найден')
+                raise ResolveError('TRACK_NOT_FOUND', 'Track not found.')
         with yt_dlp.YoutubeDL(options) as ydl:
             info = ydl.extract_info('https://www.youtube.com/watch?v=' + video_id, download=False)
     except DownloadError as exc:
         # Only clear unavailability signals are classified as not found; never log signed URLs.
         msg = str(exc).lower()
         if any(s in msg for s in ('video unavailable', 'video is unavailable', 'private video', 'has been removed')):
-            raise ResolveError('TRACK_NOT_FOUND', 'Трек не найден') from None
-        raise ResolveError('RESOLVE_FAILED', 'Не удалось получить данные трека') from None
+            raise ResolveError('TRACK_NOT_FOUND', 'Track not found.') from None
+        raise ResolveError('RESOLVE_FAILED', 'Could not load track details.') from None
     if not isinstance(info, dict) or info.get('id') != video_id:
-        raise ResolveError('RESOLVE_FAILED', 'Не удалось получить данные трека')
+        raise ResolveError('RESOLVE_FAILED', 'Could not load track details.')
     title = info.get('track') or info.get('title')
     duration = info.get('duration')
     if not isinstance(title, str) or not title.strip() or not isinstance(duration, (int, float)) or not math.isfinite(duration) or duration <= 0:
-        raise ResolveError('RESOLVE_FAILED', 'Недостаточно данных о треке')
+        raise ResolveError('RESOLVE_FAILED', 'Track details are incomplete.')
     return {'video_id': video_id, 'title': title, 'artist': info.get('artist') or info.get('uploader') or None,
             'duration_seconds': duration, 'stream_url': choose_stream(info.get('formats')), 'cover_link': choose_cover(info)}
 
@@ -170,7 +170,7 @@ def search(query, page=1):
             result = ydl.extract_info('https://music.youtube.com/search?q=' + quote(query, safe='') + '#songs', download=False)
             entries = list((result or {}).get('entries') or [])
     except DownloadError:
-        raise ResolveError('SEARCH_FAILED', 'Не удалось выполнить поиск. Попробуйте ещё раз.') from None
+        raise ResolveError('SEARCH_FAILED', 'Search failed. Try again.') from None
     items = []
     for entry in entries[:PAGE_SIZE]:
         if not isinstance(entry, dict) or not ID.fullmatch(str(entry.get('id', ''))):

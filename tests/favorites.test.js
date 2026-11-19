@@ -43,7 +43,7 @@ test('database and network failures reject instead of confirming a save',async()
   globalThis.fetch=async()=>({ok:false,status:503,json:async()=>({error:{message:'DB unavailable'}})});
   await assert.rejects(client.save('track','demo','weightless',{}),/DB unavailable/);
   globalThis.fetch=async()=>{throw new Error('offline');};
-  await assert.rejects(client.remove('track','demo','weightless'),/Нет связи/);
+  await assert.rejects(client.remove('track','demo','weightless'),/Could not reach the server/);
   globalThis.fetch=async()=>({ok:true,status:204});
   assert.equal(await client.logout(),null);
 });

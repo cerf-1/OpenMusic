@@ -59,9 +59,9 @@ try {
   await page.locator('#resolve-form [type="submit"]').click();
   await page.locator('#search-results .track-artist').click();
   assert.equal(await page.locator('#artist-title').textContent(),'Remote <Artist>');
-  await page.getByRole('button',{name:'Повторить',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Retry',exact:true}).waitFor();
   assert.equal(await page.locator('.artist-header-image').count(),0);
-  failHeader=false;await page.getByRole('button',{name:'Повторить',exact:true}).click();
+  failHeader=false;await page.getByRole('button',{name:'Retry',exact:true}).click();
   await page.locator('.artist-header-image').waitFor();
   await page.locator('.artist-header-image').evaluate(img=>img.decode());
   assert.equal(await page.locator('.artist-header-image').getAttribute('src'),'/assets/cover-forest.jpg');

@@ -63,7 +63,7 @@ def select_artist(response, name):
         browse_id = endpoint.get('browseId', '')
         if artist_key(title) == artist_key(name) and BROWSE_ID.fullmatch(browse_id):
             return browse_id
-    raise ResolveError('ARTIST_NOT_FOUND', 'Профиль артиста на YouTube Music не найден')
+    raise ResolveError('ARTIST_NOT_FOUND', 'Artist profile not found on YouTube Music.')
 
 
 def parse_artist(response, browse_id):
@@ -72,7 +72,7 @@ def parse_artist(response, browse_id):
         'musicImmersiveHeaderRenderer', 'musicVisualHeaderRenderer', 'musicHeaderRenderer',
         'musicResponsiveHeaderRenderer') if isinstance(header.get(key), dict)), None)
     if not renderer:
-        raise ResolveError('ARTIST_UNAVAILABLE', 'Не удалось загрузить профиль артиста')
+        raise ResolveError('ARTIST_UNAVAILABLE', 'Could not load the artist profile')
     return {'browse_id': browse_id, 'name': text(renderer.get('title')),
             'header_image': artist_image(renderer),
             'source_url': 'https://music.youtube.com/channel/' + browse_id}
@@ -96,4 +96,4 @@ def get_artist(name, browse_id=None):
                                             default_client='web_music', check_get_keys=('header',))
             return parse_artist(response or {}, browse_id)
     except (DownloadError, ExtractorError):
-        raise ResolveError('ARTIST_UNAVAILABLE', 'Не удалось загрузить профиль артиста. Попробуйте ещё раз.') from None
+        raise ResolveError('ARTIST_UNAVAILABLE', 'Could not load the artist profile. Try again.') from None
