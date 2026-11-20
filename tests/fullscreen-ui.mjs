@@ -6,9 +6,24 @@ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH || '
 try {
 const page=await browser.newPage({viewport:{width:1440,height:1000}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.route('**/api/v1/**',route=>route.fulfill({status:401,contentType:'application/json',body:'{}'}));
+const first={video_id:'Abcdefghijk',title:'First song',artist:'First Artist',duration_seconds:180,cover_link:'/assets/hero.png'};
+const second={...first,video_id:'Lmnopqrstuv',title:'Second song',artist:'Second Artist'};
+await page.route('**/api/v1/**',route=>{
+  const path=new URL(route.request().url()).pathname;
+  if(path.endsWith('/search'))return route.fulfill({json:{items:[first],page:1,has_more:false}});
+  if(path.endsWith('/recommendations'))return route.fulfill({json:{items:[second]}});
+  if(path.endsWith('/resolve'))return route.fulfill({json:{stream_url:'/audio-fixture.wav',duration_seconds:180}});
+  if(path.endsWith('/artist'))return route.fulfill({json:{}});
+  return route.fulfill({status:401,json:{}});
+});
 const metrics=()=>page.evaluate(()=>Object.fromEntries(['.main-play','.transport [data-action="previous"]','.shuffle-button'].map(sel=>{const el=document.querySelector(sel),s=getComputedStyle(el);return [sel,[s.width,s.height,s.color,s.backgroundColor,el.querySelector('svg').getBoundingClientRect().width]];})));
 await page.goto(process.env.UI_TEST_ORIGIN || 'http://127.0.0.1:4173');
+await page.locator('.nav-item[data-view=search]').click();
+await page.locator('#search-input').fill('First song');
+await page.locator('#resolve-form [type=submit]').click();
+const recommendations=page.waitForResponse('**/api/v1/recommendations');
+await page.locator('#search-results .track-text').click();
+await recommendations;
 await page.locator('.mini-art-button').click();
 await page.locator('.listening-room').waitFor();
 const desktop=await metrics();

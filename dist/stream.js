@@ -1,4 +1,3 @@
-import { DemoAudioEngine } from './audio.js?v=4';
 import { API_BASE } from './config.js';
 
 export async function resolveTrack(body, signal) {
@@ -15,9 +14,23 @@ export async function searchTracks(body, signal) {
   return data;
 }
 
+export async function recommendTracks(track, signal) {
+  if (!track.artist?.trim()) return [];
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/recommendations`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({video_id:track.video_id, artist:track.artist, title:track.title}),
+      signal:AbortSignal.any([signal, AbortSignal.timeout(70000)])
+    });
+    const data = response.ok ? await response.json() : null;
+    return Array.isArray(data?.items) ? data.items : [];
+  } catch {
+    return [];
+  }
+}
+
 export class AudioEngine {
   constructor(onEnded, onError, onPlaying = () => {}, onPaused = () => {}) {
-    this.demo = new DemoAudioEngine();
     this.audio = new Audio();
     this._streamContext = null;
     this._streamAnalyser = null;
@@ -45,13 +58,13 @@ export class AudioEngine {
         onPaused();
       }
     });
-    audio.addEventListener('ended', () => { if (audio === this.audio && this.track?.video_id) onEnded(); });
+    audio.addEventListener('ended', () => { if (audio === this.audio && this.desiredPlaying && audio.ended && audio.src === this.track?.stream_url) onEnded(); });
     audio.addEventListener('error', () => {if(audio === this.audio)this.refresh();});
     };
     this._bindAudio(this.audio);
   }
-  get isPlaying() { return this.track?.video_id ? !this.audio.paused && !this.audio.ended : this.demo.isPlaying; }
-  getAnalyser() { return this.track?.video_id ? (this.track.audio_path && this.audio===this._analysisAudio ? this._streamAnalyser : null) : this.demo._analyser || null; }
+  get isPlaying() { return !!this.track && !this.audio.paused && !this.audio.ended; }
+  getAnalyser() { return this.track?.audio_path && this.audio===this._analysisAudio ? this._streamAnalyser : null; }
   _initializeStreamAnalysis(track) {
     const Context=globalThis.AudioContext || globalThis.webkitAudioContext;
     if(!Context || !track.audio_path){
@@ -80,10 +93,9 @@ export class AudioEngine {
     ++this.generation;
     if (this.track !== track) {
       this.desiredPlaying = false;
-      this.demo.pause(); this.audio.pause();
+      this.audio.pause();
       this.track = track; this.refreshed = false;
     }
-    if (!track.video_id) { this.desiredPlaying = true; return this.demo.play(track.engine, position); }
     this.desiredPlaying = true;
     const generation=this.generation;
     await this.prepare(track);
@@ -91,7 +103,7 @@ export class AudioEngine {
     if(!this.desiredPlaying)return;
     this._initializeStreamAnalysis(track);
     if(this.audio.src!==track.stream_url)this.audio.src=track.stream_url;
-    if (Number.isFinite(position) && Math.abs(this.audio.currentTime-position) > 1) {
+    if (Number.isFinite(position) && (this.audio.ended || Math.abs(this.audio.currentTime-position) > 1)) {
       try { this.audio.currentTime = position; } catch {}
     }
     return this.audio.play();
@@ -109,11 +121,10 @@ export class AudioEngine {
     track.stream_url=track.audio_path ? `${API_BASE}${track.audio_path}` : data.stream_url;
     if(data.duration_seconds>0)track.duration=data.duration_seconds;
     if(data.cover_link)track.cover=data.cover_link;
-    if(data.artist)track.artist=data.artist;
+    if(data.artist && !track.artist)track.artist=data.artist;
     return track;
   }
   clearRemote() {
-    // Release account-specific streams without interrupting an active demo track.
     if (this.track?.video_id) { ++this.generation; this.pause(); this.track = null; }
     this.pending.clear();
     for (const audio of [this._directAudio, this._analysisAudio]) {
@@ -123,9 +134,9 @@ export class AudioEngine {
       audio.load();
     }
   }
-  pause() { this.desiredPlaying = false; this.demo.pause(); this.audio.pause(); }
-  seek(seconds) { if (this.track?.video_id) { try { this.audio.currentTime = seconds; } catch {} } else this.demo.seek(seconds); }
-  setVolume(value) { this.demo.setVolume(value); this._directAudio.volume = value;if(this._analysisAudio)this._analysisAudio.volume=value; }
+  pause() { this.desiredPlaying = false; this.audio.pause(); }
+  seek(seconds) { if (this.track?.video_id) { try { this.audio.currentTime = seconds; } catch {} } }
+  setVolume(value) { this._directAudio.volume = value;if(this._analysisAudio)this._analysisAudio.volume=value; }
   getCurrentTime() { return this.track?.video_id ? this.audio.currentTime || 0 : this.demo.getCurrentTime(); }
   async refresh() {
     if (!this.track?.video_id) return;

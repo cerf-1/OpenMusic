@@ -103,6 +103,7 @@ def music_search_metadata(renderer):
     columns = renderer.get('flexColumns') or []
     artists, duration = [], None
     artist_ids = []
+    album = None
     for column in columns[1:]:
         runs = column.get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs') or []
         for run in runs:
@@ -113,6 +114,10 @@ def music_search_metadata(renderer):
                 artists.append(text)
                 if re.fullmatch(r'UC[A-Za-z0-9_-]{22}', browse.get('browseId', '')):
                     artist_ids.append(browse['browseId'])
+            if text and page_type == 'MUSIC_PAGE_TYPE_ALBUM' and re.fullmatch(
+                r'MP[A-Za-z0-9_-]{3,100}', browse.get('browseId') or ''
+            ):
+                album = {'id': browse['browseId'], 'title': text}
             if re.fullmatch(r'\d+(?::\d{2}){1,2}', text):
                 duration = 0
                 for part in text.split(':'):
@@ -125,6 +130,10 @@ def music_search_metadata(renderer):
             artists.append(artist_text)
     thumbnails = renderer.get('thumbnail', {}).get('musicThumbnailRenderer', {}).get('thumbnail', {}).get('thumbnails') or []
     metadata = {'artist': ', '.join(artists) or None, 'duration': duration, 'thumbnails': thumbnails}
+    if artists:
+        metadata['artists'] = artists
+    if album:
+        metadata['album'] = album
     if len(artists) == 1 and len(artist_ids) == 1:
         metadata['artist_browse_id'] = artist_ids[0]
     return metadata
@@ -188,4 +197,7 @@ def search(query, page=1):
                       'artist': entry.get('artist') or entry.get('uploader') or entry.get('channel') or None,
                       'duration_seconds': duration, 'cover_link': cover,
                       'artist_browse_id': entry.get('artist_browse_id')})
+        for key in ('artists', 'album'):
+            if entry.get(key):
+                items[-1][key] = entry[key]
     return {'items': items, 'page': page, 'has_more': page < 100 and len(entries) > PAGE_SIZE}

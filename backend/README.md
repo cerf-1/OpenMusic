@@ -14,6 +14,9 @@
 python3.12 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
+# При наличии google-chrome или chromium в PATH этот шаг пропускается.
+# На поддерживаемой Playwright платформе без системного браузера:
+# python -m playwright install chromium
 uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
@@ -23,7 +26,7 @@ uvicorn app:app --host 127.0.0.1 --port 8000
 python3 -m http.server 4173 --bind 127.0.0.1 --directory dist
 ```
 
-Откройте `http://127.0.0.1:4173`, перейдите в Search и отправьте название. Если браузер блокирует автоматический запуск, нажмите Play. Плеер использует прямой поток, а не демозвук при ошибке.
+Откройте `http://127.0.0.1:4173`, перейдите в Search и отправьте название. Если браузер блокирует автоматический запуск, нажмите Play. Плеер использует поток YouTube.
 
 Примеры API:
 

@@ -39,13 +39,22 @@ cp .env.example .env
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements-test.txt
+# При наличии google-chrome или chromium в PATH этот шаг пропускается.
+# На поддерживаемой Playwright платформе без системного браузера:
+# python -m playwright install chromium
 docker compose up -d --wait mariadb
 python backend/migrate.py
 uvicorn --app-dir backend app:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
+На Ubuntu 26.04 ошибка `Playwright does not support chromium on ubuntu26.04-x64`
+относится к скачиванию браузера через Playwright 1.56.0. При установленном
+`google-chrome` или `chromium` в `PATH` backend сам запустит системный браузер.
+Проверьте его командой `command -v google-chrome || command -v chromium` и
+перезапустите backend после установки Python-зависимостей.
+
 Откройте [OpenMusic](http://127.0.0.1:8000). Backend раздаёт `dist/` и `/api`
-с одного origin. БД не нужна для демозвука, поиска и resolver. Если БД недоступна,
+с одного origin. Поиск, resolver и рекомендации для очереди доступны без БД. Если БД недоступна,
 операции авторизации/избранного отвечают `503`; интерфейс показывает ошибку и не
 подтверждает сохранение. Без Telegram credentials гостевой режим работает,
 `/auth/telegram/start` отвечает контролируемым `503`.
@@ -125,17 +134,13 @@ API под `/api/v1`: `GET /auth/telegram/start`, `GET /auth/telegram/callback`,
 `PUT /likes/{type}/{source}/{source_id}`, `DELETE` по тому же пути.
 PUT принимает `title`, `artist`, `cover`, `duration_seconds` (последние два nullable).
 `user_id`, аудиоссылки и неизвестные поля запрещены в теле.
-Источники: `track/demo`, `track/youtube`, `album/demo`. Демокаталог использует
-постоянные строковые ключи; YouTube — регистрозависимый 11-символьный `video_id`.
-Списки возвращают `{items, has_more}`, новые сверху (дата, затем ID); максимум
-100 объектов на страницу. Повторный PUT обновляет метаданные без изменения даты,
-параллельные PUT объединяются уникальным индексом. DELETE идемпотентен.
+Приложение использует `track/youtube` с регистрозависимым 11-символьным
+`video_id`. Списки возвращают `{items, has_more}`, новые сверху (дата, затем ID).
+Повторный PUT обновляет метаданные без изменения даты. DELETE идемпотентен.
 
-После входа профиль предлагает импортировать старый `openmusic-likes`.
-Импорт запускается только кнопкой согласия, распознаёт исходные 12 демотреков,
-объединяет лайки без дублей и очищает старый ключ только после успешного сохранения
-и перечитывания списка. При частичном сбое ключ остаётся: можно повторить импорт.
-Нераспознанные записи не отправляются. Плейлисты не переносятся в БД.
+При загрузке коллекции старые демолайки пропускаются. Плейлисты хранятся на
+устройстве. Старые числовые ссылки на демотреки пропускаются, YouTube-треки
+сохраняются по `video_id` и остаются в исходном порядке.
 
 ## Резервная копия и восстановление
 
@@ -194,12 +199,10 @@ Telegram-вход. Статус приёмки и оставшиеся ручн�
 реального Telegram) запускается отдельно от `npm test`:
 
 ```bash
-# Backend должен быть запущен на 127.0.0.1:8091 или задайте UI_TEST_ORIGIN.
+# Сначала запустите npm start в другом терминале.
 npm install --prefix /tmp/openmusic-ui-test playwright@1.58.2
-PLAYWRIGHT_MODULE=/tmp/openmusic-ui-test/node_modules/playwright/index.mjs node tests/account-ui.mjs
+PLAYWRIGHT_MODULE=/tmp/openmusic-ui-test/node_modules/playwright/index.mjs node tests/recommendations-ui.mjs
 ```
 
-По умолчанию используется `/usr/bin/google-chrome`; путь можно изменить через
-`CHROME_PATH`. Скрипт проверяет desktop/mobile, гостя, восстановление YouTube,
-ошибку сохранения, независимость альбомов, согласие/частичный сбой/повтор импорта
-и очистку данных при выходе. Снимки можно получить, задав `UI_SCREENSHOT_DIR`.
+По умолчанию тест использует `/usr/bin/google-chrome` и порт 4173.
+Их можно переопределить через `CHROME_PATH` и `UI_TEST_ORIGIN`.

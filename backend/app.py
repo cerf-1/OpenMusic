@@ -20,6 +20,7 @@ from accounts import router as accounts_router
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from resolver import resolve, search, ResolveError
 from artists import get_artist
+from recommendations import get_recommendations
 from audio_relay import register_audio, relay_audio
 
 class RedactOAuthQuery(logging.Filter):
@@ -86,11 +87,13 @@ async def invalid_request(request: Request, exc: RequestValidationError):
     return error('INVALID_REQUEST', 'Invalid request.', 422)
 
 
-def worker(conn, query, video_id, page=None, artist_request=None):
+def worker(conn, query, video_id, page=None, artist_request=None, recommendation_request=None):
     if os.name == 'posix':
         os.setsid()
     try:
-        if artist_request is not None:
+        if recommendation_request is not None:
+            result = get_recommendations(**recommendation_request)
+        elif artist_request is not None:
             result = get_artist(**artist_request)
         elif page is not None:
             result = search(query, page)
@@ -108,10 +111,10 @@ def worker(conn, query, video_id, page=None, artist_request=None):
         conn.close()
 
 
-def run_resolve(query, video_id, timeout=30, page=None, artist_request=None):
+def run_resolve(query, video_id, timeout=30, page=None, artist_request=None, recommendation_request=None):
     ctx = multiprocessing.get_context('spawn')
     parent, child = ctx.Pipe(duplex=False)
-    process = ctx.Process(target=worker, args=(child, query, video_id, page, artist_request))
+    process = ctx.Process(target=worker, args=(child, query, video_id, page, artist_request, recommendation_request))
     start = time.monotonic()
     try:
         process.start()
@@ -171,6 +174,31 @@ async def search_endpoint(body: SearchRequest):
         return JSONResponse(result, headers={'Cache-Control': 'no-store'})
     code, message = result
     return error(code, message, 504 if code == 'RESOLVE_TIMEOUT' else 502)
+
+
+class RecommendationRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True, str_strip_whitespace=True)
+    artist: str = Field(min_length=1, max_length=300)
+    title: str = Field(min_length=1, max_length=300)
+    video_id: str = Field(pattern=r'^[A-Za-z0-9_-]{11}$')
+
+
+recommendation_slots = asyncio.Semaphore(2)
+
+
+@app.post('/api/v1/recommendations')
+async def recommendations_endpoint(body: RecommendationRequest):
+    try:
+        await asyncio.wait_for(recommendation_slots.acquire(), timeout=34)
+    except TimeoutError:
+        return {'items': []}
+    try:
+        kind, result = await asyncio.to_thread(
+            run_resolve, None, None, timeout=34, recommendation_request=body.model_dump()
+        )
+    finally:
+        recommendation_slots.release()
+    return JSONResponse(result if kind == 'ok' else {'items': []}, headers={'Cache-Control': 'no-store'})
 
 
 class ArtistRequest(BaseModel):
