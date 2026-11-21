@@ -58,6 +58,9 @@ try {
   await page.locator('#search-results [data-action="track-menu"]').click();
   await page.locator('.small-modal [data-action="open-artist"]').click();
   assert.equal(await page.locator('[role="dialog"]').count(),0);
+  assert.equal(await page.locator('.artist-header-image').getAttribute('src',{timeout:3000}),'/assets/cover-forest.jpg');
+  await page.locator('.artist-header-image').evaluate(img=>img.decode());
+  assert.equal(headerRequests.length,2);
   await page.locator('.nav-item[data-view="home"]').click();
   assert.equal(await page.locator('.artist-card').count(),0);
   assert.deepEqual(errors,[]);
