@@ -1,0 +1,267 @@
+.my-vibe {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(16px, 3vw, 48px);
+  min-height: clamp(450px, 61vh, 650px);
+  padding: clamp(28px, 5vw, 80px);
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid #c8b3fa26;
+  border-radius: 28px;
+  color: #faf7ff;
+  background:
+    radial-gradient(ellipse at 77% 52%, #382664 0%, #231a44 22%, transparent 59%),
+    radial-gradient(ellipse at 101% 1%, #3c2059 0%, transparent 46%),
+    radial-gradient(ellipse at 48% 125%, #2a1742 0%, transparent 60%),
+    linear-gradient(120deg, #101017 18%, #151223 56%, #0d101c);
+}
+
+.vibe-sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(2px 2px at 86% 18%, #f9eaff 32%, transparent 90%),
+    radial-gradient(2px 2px at 63% 22%, #d5b5fc 26%, transparent 90%),
+    radial-gradient(2px 2px at 92% 75%, #ceccff 26%, transparent 90%),
+    radial-gradient(2px 2px at 58% 85%, #a9e5ff 24%, transparent 90%),
+    radial-gradient(1px 1px at 67% 69%, #fff, transparent),
+    radial-gradient(1px 1px at 51% 42%, #c3aede, transparent),
+    radial-gradient(1px 1px at 35% 18%, #c1a6e6, transparent),
+    radial-gradient(1px 1px at 72% 11%, #fff, transparent),
+    radial-gradient(1px 1px at 82% 88%, #eeccfc, transparent),
+    radial-gradient(1px 1px at 96% 46%, #fddfff, transparent);
+}
+
+.vibe-sky::before {
+  content: '';
+  position: absolute;
+  inset: 6% -21% 9% 34%;
+  transform: rotate(-32deg);
+  background: radial-gradient(ellipse closest-side, #8e57c53b, #4d59ae17 58%, transparent);
+}
+
+.vibe-sky i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: calc(clamp(44px, 10vw, 158px) * var(--size, 1));
+  height: 1px;
+  border-radius: 50%;
+  color: var(--tail, #ac8cff);
+  background: linear-gradient(90deg, transparent 8%, currentColor 65%, #fff);
+  transform-origin: left center;
+  opacity: 0;
+  animation: vibe-meteor var(--duration, 6s) var(--delay) linear infinite;
+}
+
+.vibe-sky i::before {
+  content: '';
+  position: absolute;
+  inset: -3px -1px;
+  background: radial-gradient(ellipse at 70% 50%, currentColor, transparent 70%);
+  opacity: .25;
+}
+
+.vibe-sky i::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: 0;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px currentColor, 0 0 13px 3px currentColor;
+}
+
+.vibe-sky i:nth-child(1) { --x: 74%; --y: -3%; --delay: -1s; --duration: 9s; }
+.vibe-sky i:nth-child(2) { --x: 91%; --y: 1%; --delay: -1.4s; --size: .62; --tail: #a7ddff; }
+.vibe-sky i:nth-child(3) { --x: 106%; --y: 6%; --delay: -2.8s; --duration: 7.3s; --size: 1.16; --tail: #f6abff; }
+.vibe-sky i:nth-child(4) { --x: 107%; --y: 38%; --delay: -.65s; --duration: 8.1s; }
+.vibe-sky i:nth-child(5) { --x: 107%; --y: 61%; --delay: -4.65s; --size: .71; --tail: #a7ddff; }
+.vibe-sky i:nth-child(6) { --x: 92%; --y: 68%; --delay: -1.9s; --duration: 8s; }
+.vibe-sky i:nth-child(7) { --x: 79%; --y: 70%; --delay: -5.55s; --size: 1.2; --tail: #f6abff; }
+.vibe-sky i:nth-child(8) { --x: 70%; --y: 56%; --delay: -3.6s; --duration: 6.7s; --size: .63; }
+.vibe-sky i:nth-child(9) { --x: 61%; --y: 42%; --delay: -7.7s; --duration: 8.2s; --size: .65; --tail: #a7ddff; }
+.vibe-sky i:nth-child(10) { --x: 59%; --y: 8%; --delay: -4.75s; --duration: 8.9s; --size: .58; }
+.vibe-sky i:nth-child(11) { --x: 102%; --y: 82%; --delay: -.8s; --duration: 7.1s; --size: .81; }
+
+@keyframes vibe-meteor {
+  0% { transform: rotate(146deg) translateX(-5vw); opacity: 0; }
+  7% { opacity: .9; }
+  23% { opacity: .82; }
+  35%, 100% { transform: rotate(146deg) translateX(11vw); opacity: 0; }
+}
+
+.vibe-copy {
+  position: relative;
+  z-index: 1;
+  text-align: left;
+}
+
+.vibe-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 20px;
+  color: #dac1fb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.vibe-label svg { flex: 0 0 15px; width: 15px; height: 15px; }
+
+.vibe-copy h1 {
+  font-size: clamp(36px, 5.2vw, 84px);
+  font-weight: 800;
+  line-height: 1.01;
+  letter-spacing: -.055em;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.vibe-artist, .vibe-empty {
+  margin-top: 15px;
+  color: #d9cde9;
+  font-size: clamp(15px, 1.55vw, 23px);
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.vibe-artist:empty { display: none; }
+
+.vibe-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 50px;
+  max-width: 100%;
+  margin-top: clamp(24px, 3.4vw, 44px);
+  padding: 8px 21px;
+  border: 1px solid #fff7;
+  border-radius: 99px;
+  color: #1c142b;
+  background: #e3d2ff;
+  box-shadow: 0 10px 30px #a475ef3d, inset 0 1px 0 #fff;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+  transition: background .2s ease, transform .2s ease;
+}
+
+.vibe-play:hover { background: #f4eaff; transform: translateY(-2px); }
+.vibe-play > svg, .vibe-play .transport-glyph { flex: 0 0 20px; width: 20px; height: 20px; }
+.vibe-play .transport-glyph svg { width: 100%; height: 100%; }
+.vibe-play[aria-busy="true"] .glyph-play { opacity: 0; }
+.vibe-play[aria-busy="true"] .glyph-pause { opacity: 1; transform: scale(1); }
+
+.vibe-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+}
+
+.vibe-art::before, .vibe-orbit, .vibe-orbit::before, .vibe-orbit::after {
+  position: absolute;
+  pointer-events: none;
+}
+
+.vibe-art::before {
+  content: '';
+  inset: -36%;
+  transform: rotate(-27deg);
+  background: radial-gradient(ellipse closest-side, #ad74ff87, #9562fa3b 57%, transparent);
+}
+
+.vibe-orbit {
+  inset: 1% -30%;
+  transform: rotate(-28deg);
+  border: 1px solid #debbff63;
+  border-top-color: #debbff27;
+  border-left-color: #9fbcff34;
+  border-radius: 50%;
+  box-shadow: 0 7px 25px -9px #b175e699, inset 0 -6px 20px -11px #dea2ff90;
+}
+
+.vibe-orbit::before {
+  content: '';
+  inset: 12% -9%;
+  transform: rotate(14deg);
+  border: 1px solid #b5c7ff32;
+  border-left-color: #dbbcff12;
+  border-radius: inherit;
+}
+
+.vibe-orbit::after {
+  content: '';
+  inset: 0;
+  background:
+    radial-gradient(14px 14px at 8% 23%, #fff 6%, #c1acff 14%, #9875eb55 40%, transparent 72%),
+    radial-gradient(18px 18px at 93% 76%, #fff 5%, #efd2ff 12%, #c68bff69 32%, transparent 70%),
+    radial-gradient(8px 8px at 86% 16%, #fff 8%, #bba5ff79 29%, transparent 74%);
+}
+
+.vibe-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: clamp(4px, .65vw, 10px);
+  overflow: hidden;
+  transform: rotate(-5deg);
+  border: 1px solid #eed8ff80;
+  border-radius: clamp(12px, 2vw, 27px);
+  background: linear-gradient(140deg, #dcbaff40 0%, #574177 42%, #271d3e 68%, #8671b8);
+  box-shadow: 0 32px 58px #0b071aa6, 0 0 42px #9664f34d, inset 0 1px 0 #fff5;
+}
+
+.vibe-cover img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: clamp(8px, 1.45vw, 19px);
+}
+
+.vibe-cover > svg {
+  width: 30%;
+  color: #eadbff;
+  filter: drop-shadow(0 0 22px #bb8bff);
+}
+
+@media (max-width: 980px) {
+  .my-vibe { padding-inline: clamp(24px, 4vw, 45px); }
+}
+
+@media (max-width: 720px) {
+  .my-vibe {
+    grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr);
+    gap: 14px;
+    min-height: clamp(365px, 57svh, 480px);
+    padding: 32px 18px;
+    border-radius: 20px;
+  }
+  .vibe-copy h1 { font-size: clamp(29px, 6.6vw, 46px); }
+  .vibe-label { gap: 5px; margin-bottom: 12px; font-size: 9px; letter-spacing: .09em; }
+  .vibe-label svg { width: 12px; height: 12px; flex-basis: 12px; }
+  .vibe-artist, .vibe-empty { margin-top: 10px; font-size: 14px; }
+  .vibe-play { gap: 5px; padding-inline: 11px; min-height: 44px; font-size: 12px; }
+  .vibe-play > svg, .vibe-play .transport-glyph { flex-basis: 17px; width: 17px; height: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vibe-sky i { display: none; }
+  .vibe-play:hover { transform: none; }
+}
