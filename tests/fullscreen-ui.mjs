@@ -26,6 +26,8 @@ await page.locator('#search-results .track-text').click();
 await recommendations;
 await page.locator('.mini-art-button').click();
 await page.locator('.listening-room').waitFor();
+const particles=page.locator('.fullscreen-particles');
+await page.waitForFunction(()=>document.querySelector('.fullscreen-particles')?.width>300);
 const desktop=await metrics();
 if(process.env.UI_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.UI_SCREENSHOT_DIR}/fullscreen-desktop.png`});
 for(const [width,height] of [[390,844],[320,568],[430,932],[720,540]]){
@@ -45,7 +47,26 @@ for(const [width,height] of [[390,844],[320,568],[430,932],[720,540]]){
  if(process.env.UI_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.UI_SCREENSHOT_DIR}/fullscreen-${width}x${height}.png`});
  console.log(`Layout ${width}×${height}: passed`);
 }
+await page.setViewportSize({width:900,height:380});
+await page.waitForFunction(()=>{
+ const room=document.querySelector('.listening-room');
+ return room.scrollHeight>room.clientHeight;
+});
+const canvasOffset=await particles.evaluate(canvas=>{
+ const room=canvas.closest('.listening-room');
+ room.scrollTop=room.scrollHeight;
+ return {scroll:room.scrollTop,top:canvas.getBoundingClientRect().top-room.getBoundingClientRect().top};
+});
+assert(canvasOffset.scroll>0);
+assert(Math.abs(canvasOffset.top)<1);
 await page.setViewportSize({width:390,height:844});
+await page.waitForTimeout(1400);
+const particleFrame=await particles.evaluate(canvas=>canvas.toDataURL());
+await page.waitForFunction(previous=>document.querySelector('.fullscreen-particles')?.toDataURL()!==previous,particleFrame);
+await page.emulateMedia({reducedMotion:'reduce'});
+await particles.waitFor({state:'detached'});
+await page.emulateMedia({reducedMotion:'no-preference'});
+await particles.waitFor();
 await page.locator('.listening-room .shuffle-button').click();
 assert.equal(await page.locator('.shuffle-button').getAttribute('aria-pressed'),'true');
 await page.locator('.listening-room .repeat-button').click();
@@ -58,10 +79,12 @@ assert.notEqual(await page.locator('.fullscreen-menu').getAttribute('data-id'),'
 await page.locator('#volume').fill('0.3');
 await page.locator('#progress').fill('30');
 await page.locator('.fullscreen-back').click();
+assert.equal(await particles.count(),0);
 assert.equal(await page.locator('.player .playback').count(),1);
 assert.equal(await page.locator('.player .player-like').count(),1);
 assert.equal(await page.locator('.player .player-tools').count(),1);
 await page.locator('.mini-art-button').click();
+await particles.waitFor();
 await page.setViewportSize({width:1440,height:1000});
 assert.equal(await page.locator('.player .playback').count(),1);
 await page.setViewportSize({width:390,height:844});
@@ -84,5 +107,5 @@ for(const width of [390,1440]){
  await page.locator('.artist-back').click();
 }
 assert.deepEqual(errors,[]);
-console.log('Controls, resize restoration, menu, queue, Escape, artist navigation and console: passed');
+console.log('Particle lifecycle, controls, resize restoration, menu, queue, Escape, artist navigation and console: passed');
 } finally { await browser.close(); }

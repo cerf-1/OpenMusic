@@ -1,3 +1,5 @@
+import { startFullscreenParticles } from './fullscreen-particles.js?v=1';
+
 // Reuse the live controls on mobile and restore their exact positions on exit.
 export function createFullscreenLayout(room, player) {
   const background = [...document.querySelectorAll('.sidebar,.main-shell,.mobile-nav')];
@@ -32,8 +34,10 @@ export function createFullscreenLayout(room, player) {
   window.addEventListener('resize', resize);
   mobile.addEventListener('change', adapt);
   adapt();
+  const stopParticles = startFullscreenParticles(room);
   return {
     destroy() {
+      stopParticles?.();
       restore();
       moved.forEach(({ marker }) => marker.remove());
       mobile.removeEventListener('change', adapt);
