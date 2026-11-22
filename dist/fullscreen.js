@@ -1,4 +1,4 @@
-import { startFullscreenParticles } from './fullscreen-particles.js?v=1';
+import { startFullscreenParticles } from './fullscreen-particles.js?v=2';
 
 // Reuse the live controls on mobile and restore their exact positions on exit.
 export function createFullscreenLayout(room, player) {

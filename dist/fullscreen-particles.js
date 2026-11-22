@@ -25,7 +25,7 @@ function resetParticle(particle) {
   particle.edge = Math.random();
   particle.targetX = Math.random() - .5;
   particle.targetY = Math.random() - .5;
-  particle.duration = .48 + Math.random() * .72;
+  particle.duration = .96 + Math.random() * 1.44;
   // Most particles are pinpoints. A few pass close enough to leave wide trails.
   const depth = Math.random() ** 4;
   particle.thickness = 1.1 + 3.3 * depth;

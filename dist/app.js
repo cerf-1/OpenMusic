@@ -3,7 +3,7 @@ import { API_BASE } from './config.js';
 import { FavoritesClient, favoriteIdentity, favoriteMetadata } from './favorites.js?v=1';
 import { createArtworkWave } from './artwork-wave.js?v=6';
 import { AudioEngine, searchTracks, recommendTracks } from './stream.js?v=9';
-import { createFullscreenLayout } from './fullscreen.js?v=8';
+import { createFullscreenLayout } from './fullscreen.js?v=9';
 import { createPlayerMaterial } from './liquid-glass.js?v=2';
 
 let coverWave = null;
