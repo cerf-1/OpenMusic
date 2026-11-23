@@ -7,10 +7,10 @@ function createStreak() {
   sprite.height = STREAK_HEIGHT;
   const context = sprite.getContext('2d');
   const trail = context.createLinearGradient(0, 0, 60, 0);
-  trail.addColorStop(0, 'rgba(171, 153, 219, 0)');
-  trail.addColorStop(.52, 'rgba(192, 176, 234, .22)');
-  trail.addColorStop(.9, 'rgba(225, 213, 251, .64)');
-  trail.addColorStop(1, '#f5eeff');
+  trail.addColorStop(0, 'rgba(171, 171, 171, 0)');
+  trail.addColorStop(.52, 'rgba(192, 192, 192, .22)');
+  trail.addColorStop(.9, 'rgba(225, 225, 225, .64)');
+  trail.addColorStop(1, '#f5f5f5');
   context.fillStyle = trail;
   context.beginPath();
   context.moveTo(0, 8);

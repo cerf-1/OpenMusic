@@ -11,7 +11,6 @@ export function createPlayerMaterial(player) {
   effects.innerHTML = '<i class="glass-caustic"></i><i class="glass-wave"></i><i class="glass-wave glass-wave-echo"></i>';
   player.prepend(effects);
   const [light, wave, echo] = effects.children;
-  let tint;
   let animations = [];
 
   function stop() {
@@ -26,11 +25,6 @@ export function createPlayerMaterial(player) {
   window.addEventListener('pagehide', stop);
 
   return {
-    setTint(value) {
-      if (value === tint) return;
-      tint = value;
-      player.style.setProperty('--glass-tint', value);
-    },
     ripple(playing) {
       stop();
       if (reducedMotion.matches || reducedTransparency.matches || !player.animate) return;

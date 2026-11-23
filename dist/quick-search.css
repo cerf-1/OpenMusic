@@ -1,5 +1,5 @@
 .quick-search-slot {
-  --quick-search-surface: #242229;
+  --quick-search-surface: #232323;
   --quick-search-border: #ffffff20;
   position: relative;
   width: clamp(245px, 33vw, 396px);
@@ -16,7 +16,7 @@
   border: 1px solid var(--quick-search-border);
   border-radius: 24px;
   background: var(--quick-search-surface);
-  color: #bdb7c5;
+  color: #b9b9b9;
   cursor: text;
 }
 .quick-search-slot:has(.quick-search:not([hidden])) #quick-search-form {
@@ -34,11 +34,11 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: #f4f1f6;
+  color: #f2f2f2;
   font: inherit;
   font-size: 16px;
 }
-#quick-search-input::placeholder { color: #bdb7c5; font-size: 13px; }
+#quick-search-input::placeholder { color: #b9b9b9; font-size: 13px; }
 #quick-search-input::-webkit-search-cancel-button { display: none; }
 #quick-search-form kbd, #quick-search-clear { position: absolute; right: 7px; }
 #quick-search-form kbd { right: 15px; font-size: 11px; pointer-events: none; }
@@ -56,20 +56,20 @@
   border-top-color: #ffffff12;
   border-radius: 0 0 24px 24px;
   background: var(--quick-search-surface);
-  color: #f4f1f6;
+  color: #f2f2f2;
   box-shadow: 0 12px 32px #0007;
   overflow: hidden;
 }
-.quick-search button:focus-visible, #quick-search-clear:focus-visible { outline: 2px solid #d8baf3; outline-offset: -2px; }
+.quick-search button:focus-visible, #quick-search-clear:focus-visible { outline: 2px solid #c4c4c4; outline-offset: -2px; }
 
-#quick-search-status { margin: 12px 15px 8px; color: #bdb7c5; font-size: 12px; font-weight: 650; }
+#quick-search-status { margin: 12px 15px 8px; color: #b9b9b9; font-size: 12px; font-weight: 650; }
 #quick-search-results {
   max-height: min(332px, max(72px, calc(100dvh - 160px)));
   padding: 0 7px 7px;
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #6b6375 transparent;
+  scrollbar-color: #666666 transparent;
 }
 .quick-search-track {
   display: grid;
@@ -82,11 +82,11 @@
   text-align: left;
 }
 .quick-search-track:hover, #quick-search-clear:hover, .quick-search-pages button:hover { background: #ffffff0e; }
-.quick-search-track img { width: 40px; height: 40px; border-radius: 5px; object-fit: cover; background: #36313e; }
+.quick-search-track img { width: 40px; height: 40px; border-radius: 5px; object-fit: cover; background: #333333; }
 .quick-search-track strong, .quick-search-track small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quick-search-track strong { font-size: 14px; }
-.quick-search-track small { margin-top: 2px; color: #bdb7c5; font-size: 12px; }
-.quick-search-track > svg { margin-right: 5px; color: #e4dceb; opacity: 0; }
+.quick-search-track small { margin-top: 2px; color: #b9b9b9; font-size: 12px; }
+.quick-search-track > svg { margin-right: 5px; color: #dfdfdf; opacity: 0; }
 .quick-search-track:hover > svg, .quick-search-track:focus-visible > svg { opacity: 1; }
 .quick-search-pages { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; }
 .quick-search-pages button { min-height: 36px; padding: 0 8px; border-radius: 8px; font-size: 12px; }

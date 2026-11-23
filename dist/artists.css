@@ -11,17 +11,17 @@
 .artist-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 22px; }
 .artist-card { min-width: 0; padding: 0; text-align: left; }
 .artist-card img { aspect-ratio: 1; border-radius: 50%; background: var(--paper); transition: filter .2s; }
-.artist-card:hover img { filter: brightness(1.15); }
+.artist-card:hover img { filter: grayscale(1) brightness(1.15); }
 .artist-card strong { display: block; margin-top: 14px; font-size: 14px; overflow-wrap: anywhere; }
 .artist-card > span { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; }
 .artist-hero { position: relative; isolation: isolate; min-height: 330px; height: clamp(330px,30vw,440px); border-radius: 17px; overflow: hidden; background: var(--paper); }
 .artist-hero > img { position: absolute; inset: 0; height: 100%; z-index: -2; }
-.artist-hero-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg,#0c0b10ed, #0c0b1030 85%),linear-gradient(90deg,#0c0b1080,transparent); }
-.artist-back { position: absolute; top: 20px; left: 22px; color: #fff; background: #15101c9c; }
-.artist-back:hover { background: #332b40; }
+.artist-hero-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg,#0c0c0ced, #0c0c0c30 85%),linear-gradient(90deg,#0c0c0c80,transparent); }
+.artist-back { position: absolute; top: 20px; left: 22px; color: #fff; background: #1212129c; }
+.artist-back:hover { background: #2e2e2e; }
 .artist-heading { position: absolute; bottom: 32px; left: 36px; right: 36px; }
 .artist-heading h1 { font-size: clamp(42px,6vw,86px); line-height: 1.05; letter-spacing: -.045em; margin: 14px 0; overflow-wrap: anywhere; }
-.artist-heading > p:last-child { color: #ddd6e5; font-size: 13px; }
+.artist-heading > p:last-child { color: #d9d9d9; font-size: 13px; }
 .artist-actions { display: flex; align-items: center; gap: 18px; margin: 26px 0 34px; }
 .artist-play { position: relative; width: 58px; height: 58px; flex-shrink: 0; }
 .artist-actions > .icon-button { width: 44px; height: 44px; }
@@ -75,7 +75,7 @@
 .artist-page > :not(.artist-hero) { margin-left: var(--artist-gutter); margin-right: var(--artist-gutter); position: relative; }
 .artist-page > .artist-hero { height: clamp(480px,40vw,650px); min-height: 0; margin: calc(-1 * var(--artist-bar)) 0 0; border: 0; border-radius: 0; overflow: visible; background: transparent; }
 .artist-hero > .artist-header-image { height: calc(100% + 190px); object-fit: cover; object-position: center 30%; mask-image: linear-gradient(#000 0%,#000 55%,transparent 100%); }
-.artist-hero-shade { bottom: -190px; background: linear-gradient(0deg,var(--bg) 0%,#0c0b10eb 16%,#0c0b1066 47%,#0c0b1026 100%),linear-gradient(90deg,#0c0b104d,transparent 75%); }
+.artist-hero-shade { bottom: -190px; background: linear-gradient(0deg,var(--bg) 0%,#0c0c0ceb 16%,#0c0c0c66 47%,#0c0c0c26 100%),linear-gradient(90deg,#0c0c0c4d,transparent 75%); }
 .artist-heading { left: var(--artist-gutter); right: var(--artist-gutter); bottom: 22px; }
 .artist-heading h1 { font-size: clamp(40px,5vw,76px); }
 .artist-back { left: var(--artist-gutter); top: calc(var(--artist-bar) + 14px); }

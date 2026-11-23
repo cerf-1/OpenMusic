@@ -1,12 +1,11 @@
 /* Liquid Glass is reserved for the floating control layer. */
 .player {
-  --glass-tint: #edc29c;
   --glass-ripple: rings;
   overflow: hidden;
   border: 1px solid #ffffff1c;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: #202024ee;
+  background: #141414ee;
   box-shadow: 0 14px 44px #0005, 0 3px 10px #0003,
     inset 0 1px 0 #ffffff13, inset 0 -1px 0 #0004;
 }
@@ -16,18 +15,18 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse at 3% 0%, color-mix(in srgb, var(--glass-tint) 15%, transparent), transparent 48%),
-    radial-gradient(ellipse at 85% 110%, #c2bcfa0b, transparent 54%),
+  background: radial-gradient(ellipse at 3% 0%, #ffffff18, transparent 48%),
+    radial-gradient(ellipse at 85% 110%, #c2c2c20b, transparent 54%),
     linear-gradient(170deg, #ffffff06, transparent 45%, #ffffff03);
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .player { background: transparent; }
   .player::before {
-    background: radial-gradient(ellipse at 3% 0%, color-mix(in srgb, var(--glass-tint) 15%, transparent), transparent 48%),
-      radial-gradient(ellipse at 85% 110%, #c2bcfa0b, transparent 54%),
-      linear-gradient(120deg, #29292eb8, #1a1a21c4 55%, #25252db8);
-    backdrop-filter: blur(24px) saturate(1.45);
-    -webkit-backdrop-filter: blur(24px) saturate(1.45);
+    background: radial-gradient(ellipse at 3% 0%, #ffffff18, transparent 48%),
+      radial-gradient(ellipse at 85% 110%, #c2c2c20b, transparent 54%),
+      linear-gradient(120deg, #181818e6, #0f0f0ff0 55%, #161616e6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
 }
 .player::after {
@@ -44,7 +43,7 @@
   -webkit-mask-composite: xor;
 }
 .player > .now-playing, .player > .playback, .player > .player-tools { position: relative; z-index: 1; }
-.player .now-playing-info > span { color: #c0bbc7; }
+.player .now-playing-info > span { color: #bdbdbd; }
 .player .mini-art-button { box-shadow: 0 3px 12px #0003, 0 0 0 1px #ffffff16; }
 .player-glass-fx {
   position: absolute;
@@ -61,22 +60,22 @@
   opacity: 0;
   border: 1px solid #ffffff55;
   background: radial-gradient(circle, transparent 55%, #ffffff03 66%, #ffffff0b 70%, transparent 71%);
-  box-shadow: inset 0 0 20px #ffffff12, 0 0 12px #d6d0ff12;
+  box-shadow: inset 0 0 20px #ffffff12, 0 0 12px #d5d5d512;
 }
-.glass-wave-echo { border-color: #e0d5ff29; background: none; box-shadow: 0 0 10px #e0d5ff14; }
+.glass-wave-echo { border-color: #dadada29; background: none; box-shadow: 0 0 10px #dadada14; }
 .glass-caustic {
   position: absolute;
   inset: 0;
   opacity: 0;
-  background: radial-gradient(ellipse at var(--wave-x, 50%) var(--wave-y, 35%), #f6f0ff2e, #d4c1ff0a 38%, transparent 72%);
+  background: radial-gradient(ellipse at var(--wave-x, 50%) var(--wave-y, 35%), #f2f2f22e, #cacaca0a 38%, transparent 72%);
 }
 /* Smaller glass surfaces only where they float over artwork. */
 .hero-save, .hero-pagination .icon-button {
   border: 1px solid #ffffff24;
-  background: linear-gradient(145deg, #ffffff16, #15121c40);
+  background: linear-gradient(145deg, #ffffff16, #13131340);
   box-shadow: inset 0 1px 0 #ffffff1c, 0 3px 10px #00000014;
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 .hero-save:hover, .hero-pagination .icon-button:hover { background: #ffffff24; }
 @media (min-width: 721px) {
@@ -96,9 +95,9 @@
   .player .transport { position: relative; z-index: 1; }
   .player .timeline { left: 16px; right: 16px; bottom: 1px; z-index: 1; }
   .mobile-nav {
-    background: #15131bd9;
-    backdrop-filter: blur(18px) saturate(1.2);
-    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    background: #141414d9;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
     box-shadow: inset 0 1px 0 #ffffff06;
   }
 }
@@ -107,7 +106,7 @@
    Keep the glass lighting, but avoid live backdrop reads, the composite mask,
    and oversized circle surfaces. Blink/WebKit retain their original material. */
 @supports (-moz-appearance: none) {
-  .player { --glass-ripple: sweep; background: #202024; }
+  .player { --glass-ripple: sweep; background: #141414; }
   .player::before { backdrop-filter: none; -webkit-backdrop-filter: none; }
   .player::after {
     background: none;
@@ -119,22 +118,20 @@
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    background: radial-gradient(ellipse at center, #f4edff30, #ded1ff0d 40%, transparent 72%);
+    background: radial-gradient(ellipse at center, #f0f0f030, #d7d7d70d 40%, transparent 72%);
   }
   .hero-save, .hero-pagination .icon-button, .mobile-nav, .modal-close, #toast {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .mobile-nav { background: #15131bf5; }
-  /* A transformed photo remains animated without re-filtering its pixels. */
-  .album-card:hover img { filter: none; }
+  .mobile-nav { background: #141414f5; }
 }
 @media (prefers-reduced-motion: reduce) {
   .player-glass-fx { display: none; }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .player { background: #242329; backdrop-filter: none; -webkit-backdrop-filter: none; border-color: #ffffff4d; }
+  .player { background: #242424; backdrop-filter: none; -webkit-backdrop-filter: none; border-color: #ffffff4d; }
   .player::before, .player-glass-fx { display: none; }
-  .mobile-nav { background: #15131b; backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .hero-save, .hero-pagination .icon-button { background: #25222eeF; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .mobile-nav { background: #141414; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .hero-save, .hero-pagination .icon-button { background: #242424ef; backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
