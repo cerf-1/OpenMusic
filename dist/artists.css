@@ -11,7 +11,7 @@
 .artist-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 22px; }
 .artist-card { min-width: 0; padding: 0; text-align: left; }
 .artist-card img { aspect-ratio: 1; border-radius: 50%; background: var(--paper); transition: filter .2s; }
-.artist-card:hover img { filter: grayscale(1) brightness(1.15); }
+.artist-card:hover img { filter: brightness(1.15); }
 .artist-card strong { display: block; margin-top: 14px; font-size: 14px; overflow-wrap: anywhere; }
 .artist-card > span { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; }
 .artist-hero { position: relative; isolation: isolate; min-height: 330px; height: clamp(330px,30vw,440px); border-radius: 17px; overflow: hidden; background: var(--paper); }
