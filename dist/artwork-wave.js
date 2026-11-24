@@ -123,19 +123,19 @@ export function createArtworkWave(canvas, readState) {
       // The fill fades inward: an erased, feathered rounded rectangle keeps
       // a clear 1.5px breathing space around the cover, even at a strong hit.
       outline(expansion,detail);
-      ctx.fillStyle=`rgba(191,191,191,${energy*.26})`;ctx.fill();
+      ctx.fillStyle=`rgba(255,255,255,${energy*.26})`;ctx.fill();
       ctx.globalCompositeOperation='destination-out';
       ctx.shadowColor='#000';ctx.shadowBlur=5*visualScale;
       ctx.fillStyle='#000';
       ctx.beginPath();ctx.roundRect(pad-1.5,pad-1.5,width-pad*2+3,height-pad*2+3,radius+1.5);ctx.fill();
       ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
       // Very small, bounded canvas: glow never repaints the whole player.
-      ctx.shadowColor=`rgba(210,210,210,${energy*.55})`;ctx.shadowBlur=energy*6*visualScale;
+      ctx.shadowColor=`rgba(255,255,255,${energy*.55})`;ctx.shadowBlur=energy*6*visualScale;
       outline(expansion+2*visualScale,Math.min(Math.max(0,pad-6*visualScale-expansion),energy*3*visualScale));
-      ctx.strokeStyle=`rgba(191,191,191,${.05+energy*.22})`;ctx.lineWidth=2*visualScale;ctx.stroke();
+      ctx.strokeStyle=`rgba(255,255,255,${.05+energy*.22})`;ctx.lineWidth=2*visualScale;ctx.stroke();
       ctx.shadowBlur=0;
       outline(expansion,detail);
-      ctx.strokeStyle=`rgba(238,238,238,${.07+energy*.76})`;ctx.lineWidth=(1.3+hit*.65)*visualScale;ctx.stroke();
+      ctx.strokeStyle=`rgba(255,255,255,${.07+energy*.76})`;ctx.lineWidth=(1.3+hit*.65)*visualScale;ctx.stroke();
       // Clip even the contour's glow out of the cover's breathing space.
       ctx.globalCompositeOperation='destination-out';ctx.fillStyle='#000';
       ctx.beginPath();ctx.roundRect(pad-1.5,pad-1.5,width-pad*2+3,height-pad*2+3,radius+1.5);ctx.fill();

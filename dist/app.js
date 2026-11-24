@@ -1,7 +1,7 @@
 import { artistKey, artistProfile } from './artists.js';
 import { API_BASE } from './config.js';
 import { FavoritesClient, favoriteIdentity, favoriteMetadata } from './favorites.js?v=1';
-import { createArtworkWave } from './artwork-wave.js?v=7';
+import { createArtworkWave } from './artwork-wave.js?v=8';
 import { AudioEngine, searchTracks, recommendTracks } from './stream.js?v=9';
 import { createFullscreenLayout } from './fullscreen.js?v=10';
 import { createPlayerMaterial } from './liquid-glass.js?v=3';
