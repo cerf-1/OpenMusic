@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { artistKey, artistProfile, catalogArtists } from '../dist/artists.js';
+import { artistCredits, artistKey, artistProfile, catalogArtists } from '../dist/artists.js';
 const tracks=[
   {id:0,artist:'Sora',art:'hero.png',genre:'Ambient'},
   {id:1,artist:'Sora',art:'hero.png',genre:'Ambient'},
@@ -29,4 +29,17 @@ test('remote artists use available track artwork and have no invented collection
   assert.equal(profile.local,false);
   assert.equal(profile.cover,'https://example.com/art.jpg');
   assert.deepEqual(catalogArtists(tracks,albums).map(a=>a.name),['Sora','Noa & The Waves']);
+});
+
+test('collaborators keep their own profile IDs and legacy credits remain navigable',()=>{
+  const first={name:'VILLIAN',browse_id:'UC'+'a'.repeat(22)};
+  const second={name:'madk1d',browse_id:'UC'+'b'.repeat(22)};
+  const collaboration={id:10,artist:'VILLIAN, madk1d',artist_credits:[first,second]};
+  const catalog=[collaboration,{id:11,artist:'madk1d',artist_browse_id:'UC'+'c'.repeat(22)}];
+  assert.deepEqual(artistCredits(collaboration),[first,second]);
+  assert.deepEqual(artistProfile('madk1d',catalog,[],{browseId:second.browse_id}).tracks,[10]);
+  assert.equal(artistProfile('VILLIAN',catalog).browseId,first.browse_id);
+  assert.equal(artistProfile(collaboration.artist,catalog),null);
+  assert.deepEqual(artistCredits({artist:' VILLIAN, madk1d '}),[{name:'VILLIAN'},{name:'madk1d'}]);
+  assert.deepEqual(artistCredits({artist_credits:[{name:'Earth, Wind & Fire'}]}),[{name:'Earth, Wind & Fire'}]);
 });

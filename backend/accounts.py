@@ -1,6 +1,7 @@
 """Telegram OIDC, opaque server sessions and user-scoped favorites."""
 import base64
 import hashlib
+import json
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -167,10 +168,17 @@ def logout(request: Request, user=Depends(mutation)):
     return response
 
 
+class ArtistCredit(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    name: str = Field(min_length=1, max_length=300)
+    browse_id: str | None = Field(default=None, pattern=r'^UC[A-Za-z0-9_-]{22}$')
+
+
 class Metadata(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
     title: str = Field(min_length=1, max_length=300)
     artist: str = Field(max_length=300)
+    artist_credits: list[ArtistCredit] | None = Field(default=None, max_length=50)
     cover: str | None = Field(default=None, max_length=2048)
     duration_seconds: int | None = Field(default=None, ge=0, le=604800)
 
@@ -202,22 +210,30 @@ def identity(kind, source, source_id):
 def likes(type: Literal['track', 'album'], limit: int = Query(default=50, ge=1, le=100),
           offset: int = Query(default=0, ge=0, le=2147483647), user=Depends(session)):
     with database() as cursor:
-        cursor.execute('SELECT id,type,source,source_id,title,artist,cover,duration_seconds,created_at '
+        cursor.execute('SELECT id,type,source,source_id,title,artist,artist_credits,cover,duration_seconds,created_at '
                        'FROM likes WHERE user_id=%s AND type=%s ORDER BY created_at DESC,id DESC LIMIT %s OFFSET %s',
                        (user['id'], type, limit + 1, offset))
         rows = cursor.fetchall()
-    return {'items': rows[:limit], 'has_more': len(rows) > limit}
+    items = rows[:limit]
+    for item in items:
+        credits = item.pop('artist_credits')
+        if credits:
+            item['artist_credits'] = json.loads(credits)
+    return {'items': items, 'has_more': len(rows) > limit}
 
 
 @router.put('/likes/{type}/{source}/{source_id}')
 def put_like(type: Literal['track', 'album'], source: str, source_id: str,
              body: Metadata, user=Depends(mutation)):
     identity(type, source, source_id)
+    credits = json.dumps([credit.model_dump(exclude_none=True) for credit in body.artist_credits]) if body.artist_credits else None
     with database() as cursor:
-        cursor.execute('INSERT INTO likes (user_id,type,source,source_id,title,artist,cover,duration_seconds) '
-                       'VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE '
-                       'title=VALUES(title),artist=VALUES(artist),cover=VALUES(cover),duration_seconds=VALUES(duration_seconds)',
-                       (user['id'], type, source, source_id, body.title, body.artist, body.cover, body.duration_seconds))
+        cursor.execute('INSERT INTO likes (user_id,type,source,source_id,title,artist,artist_credits,cover,duration_seconds) '
+                       'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE '
+                       'title=VALUES(title),artist=VALUES(artist),'
+                       'artist_credits=COALESCE(VALUES(artist_credits),artist_credits),'
+                       'cover=VALUES(cover),duration_seconds=VALUES(duration_seconds)',
+                       (user['id'], type, source, source_id, body.title, body.artist, credits, body.cover, body.duration_seconds))
     return {'saved': True}
 
 

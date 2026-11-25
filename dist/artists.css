@@ -1,13 +1,14 @@
 /* Artist pages use the player's existing typography, surfaces and controls. */
-.artist-link { color: var(--muted); padding: 0; text-align: left; }
-.artist-link:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.artist-link { color: var(--muted); padding: 0; text-align: left; text-decoration: none; }
+.artist-link:hover, .artist-link:focus-visible { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .album-artist { display: block; font-size: 12px; margin: 7px 0; }
 .track-details { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .track-details .track-text { width: 100%; min-width: 0; padding: 0; text-align: left; }
 .track-details .track-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.track-details .artist-link { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.artist-byline { max-width: 100%; overflow-wrap: anywhere; }
+.now-playing-info > .artist-byline { white-space: normal; }
 .now-playing-info > button { display: block; max-width: 100%; padding: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.now-playing-info > .artist-link { font-size: 12px; margin-top: 4px; }
+.now-playing-info > .artist-byline { font-size: 12px; margin-top: 4px; }
 .artist-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 22px; }
 .artist-card { min-width: 0; padding: 0; text-align: left; }
 .artist-card img { aspect-ratio: 1; border-radius: 50%; background: var(--paper); transition: filter .2s; }
@@ -63,7 +64,7 @@
   .artist-page .track-title { font-size: 14px; }
   .artist-page .track-artist { font-size: 12px; }
   .artist-page .album-grid { display: flex; }
-  .now-playing-info > .artist-link { font-size: 10px; }
+  .now-playing-info > .artist-byline { font-size: 10px; }
 }
 @media (prefers-reduced-motion:reduce) { .artist-card img { transition: none; } }
 

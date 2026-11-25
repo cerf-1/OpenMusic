@@ -54,6 +54,7 @@ export function favoriteIdentity(item) {
 }
 export function favoriteMetadata(item) {
   return {title: item.title, artist: item.artist || '',
+    ...(item.artist_credits?.length ? {artist_credits: item.artist_credits} : {}),
     cover: item.video_id ? (item.cover || `https://i.ytimg.com/vi/${item.video_id}/mqdefault.jpg`) : `./assets/${item.art}`,
     duration_seconds: item.duration > 0 ? Math.round(item.duration) : null};
 }

@@ -101,41 +101,59 @@ def music_search_metadata(renderer):
     This adapter does not fetch individual videos or resolve their streams.
     """
     columns = renderer.get('flexColumns') or []
-    artists, duration = [], None
-    artist_ids = []
+    credits, duration = [], None
     album = None
-    for column in columns[1:]:
+    for index, column in enumerate(columns[1:]):
         runs = column.get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs') or []
+        byline = []
+        plain = ''
+        in_byline = index == 0
         for run in runs:
             browse = run.get('navigationEndpoint', {}).get('browseEndpoint', {})
             page_type = browse.get('browseEndpointContextSupportedConfigs', {}).get('browseEndpointContextMusicConfig', {}).get('pageType')
-            text = run.get('text', '').strip()
-            if text and page_type == 'MUSIC_PAGE_TYPE_ARTIST' and text not in artists:
-                artists.append(text)
-                if re.fullmatch(r'UC[A-Za-z0-9_-]{22}', browse.get('browseId', '')):
-                    artist_ids.append(browse['browseId'])
+            raw = run.get('text', '')
+            text = raw.strip()
+            is_artist = text and page_type == 'MUSIC_PAGE_TYPE_ARTIST'
+            is_duration = re.fullmatch(r'\d+(?::\d{2}){1,2}', text)
+            if in_byline and (' • ' in raw or text == '•' or (page_type and not is_artist) or is_duration):
+                plain += raw.split(' • ', 1)[0] if ' • ' in raw else ''
+                in_byline = False
+            if in_byline and not is_artist and text not in (',', '&'):
+                plain += raw
+            elif plain:
+                byline.extend({'name': name.strip()} for name in re.split(r',\s+', plain) if name.strip())
+                plain = ''
+            if is_artist:
+                credit = {'name': text}
+                browse_id = browse.get('browseId') or ''
+                if re.fullmatch(r'UC[A-Za-z0-9_-]{22}', browse_id):
+                    credit['browse_id'] = browse_id
+                credits.append(credit)
+                if in_byline:
+                    byline.append(credit)
             if text and page_type == 'MUSIC_PAGE_TYPE_ALBUM' and re.fullmatch(
                 r'MP[A-Za-z0-9_-]{3,100}', browse.get('browseId') or ''
             ):
                 album = {'id': browse['browseId'], 'title': text}
-            if re.fullmatch(r'\d+(?::\d{2}){1,2}', text):
+            if is_duration:
                 duration = 0
                 for part in text.split(':'):
                     duration = duration * 60 + int(part)
-    if not artists and len(columns) > 1:
-        runs = columns[1].get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs') or []
-        # Some artists have no browse link; the first metadata segment is still their name.
-        artist_text = ''.join(run.get('text', '') for run in runs).split(' • ', 1)[0].strip()
-        if artist_text and not re.fullmatch(r'\d+(?::\d{2}){1,2}', artist_text):
-            artists.append(artist_text)
+        if plain.strip():
+            byline.extend({'name': name.strip()} for name in re.split(r',\s+', plain) if name.strip())
+        if byline and (not credits or any(credit in credits for credit in byline)):
+            credits = byline + [credit for credit in credits if credit not in byline]
+    credits = list({(credit['name'], credit.get('browse_id')): credit for credit in credits}.values())
+    artists = [credit['name'] for credit in credits]
     thumbnails = renderer.get('thumbnail', {}).get('musicThumbnailRenderer', {}).get('thumbnail', {}).get('thumbnails') or []
     metadata = {'artist': ', '.join(artists) or None, 'duration': duration, 'thumbnails': thumbnails}
     if artists:
         metadata['artists'] = artists
+        metadata['artist_credits'] = credits
     if album:
         metadata['album'] = album
-    if len(artists) == 1 and len(artist_ids) == 1:
-        metadata['artist_browse_id'] = artist_ids[0]
+    if len(credits) == 1 and credits[0].get('browse_id'):
+        metadata['artist_browse_id'] = credits[0]['browse_id']
     return metadata
 
 
@@ -197,7 +215,7 @@ def search(query, page=1):
                       'artist': entry.get('artist') or entry.get('uploader') or entry.get('channel') or None,
                       'duration_seconds': duration, 'cover_link': cover,
                       'artist_browse_id': entry.get('artist_browse_id')})
-        for key in ('artists', 'album'):
+        for key in ('artists', 'artist_credits', 'album'):
             if entry.get(key):
                 items[-1][key] = entry[key]
     return {'items': items, 'page': page, 'has_more': page < 100 and len(entries) > PAGE_SIZE}

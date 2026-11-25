@@ -82,16 +82,24 @@ def test_search_api_validation_and_empty_page(monkeypatch):
 
 def test_music_search_preserves_artists_and_square_cover():
     from resolver import music_search_metadata
-    def artist(text):
+    def artist(text, browse_id):
         return {'text': text, 'navigationEndpoint': {'browseEndpoint': {
+            'browseId': browse_id,
             'browseEndpointContextSupportedConfigs': {'browseEndpointContextMusicConfig': {'pageType': 'MUSIC_PAGE_TYPE_ARTIST'}}}}}
     image = 'https://yt3.googleusercontent.com/album=w120-h120-l90-rj'
     renderer = {'flexColumns': [{}, {'musicResponsiveListItemFlexColumnRenderer': {'text': {
-        'runs': [artist('Daft Punk'), {'text': ' & '}, artist('Julian Casablancas'),
+        'runs': [artist('Daft Punk', 'UC' + 'a' * 22), {'text': ' & '}, artist('Julian Casablancas', 'UC' + 'b' * 22),
+                 {'text': ', '}, {'text': 'A guest'},
                  {'text': ' • '}, {'text': 'Random Access Memories'}, {'text': '5:38'}]}}}],
         'thumbnail': {'musicThumbnailRenderer': {'thumbnail': {'thumbnails': [{'url': image, 'width': 120, 'height': 120}]}}}}
     metadata = music_search_metadata(renderer)
-    assert metadata['artist'] == 'Daft Punk, Julian Casablancas'
+    assert metadata['artist'] == 'Daft Punk, Julian Casablancas, A guest'
+    assert metadata['artist_credits'] == [
+        {'name': 'Daft Punk', 'browse_id': 'UC' + 'a' * 22},
+        {'name': 'Julian Casablancas', 'browse_id': 'UC' + 'b' * 22},
+        {'name': 'A guest'},
+    ]
+    assert 'artist_browse_id' not in metadata
     assert metadata['duration'] == 338
     assert choose_cover(metadata) == image
     assert music_search_metadata({}) == {'artist': None, 'duration': None, 'thumbnails': []}

@@ -98,7 +98,7 @@ await page.keyboard.press('Escape');
 for(const width of [390,1440]){
  await page.setViewportSize({width,height:844});
  await page.locator('.mini-art-button').click();
- const artist=page.locator('#full-artist');
+ const artist=page.locator('#full-artist a');
  const name=await artist.textContent();
  if(width===390)await artist.click();
  else await artist.press('Enter');

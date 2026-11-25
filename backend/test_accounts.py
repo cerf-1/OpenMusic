@@ -134,6 +134,17 @@ def test_invalid_claims(oidc, change):
         assert cursor.fetchone()['n'] == 0
 
 
+def test_liked_collaboration_keeps_each_credit(oidc):
+    client, _ = login(oidc)
+    url = '/api/v1/likes/track/youtube/abcdefghijk'
+    metadata = {**BODY, 'artist': 'VILLIAN, madk1d'}
+    credits = [{'name': 'VILLIAN', 'browse_id': 'UC' + 'a' * 22}, {'name': 'madk1d'}]
+    assert client.put(url, json={**metadata, 'artist_credits': credits}).status_code == 200
+    assert client.put(url, json=metadata).status_code == 200
+    item = client.get('/api/v1/likes?type=track').json()['items'][0]
+    assert item['artist_credits'] == credits
+
+
 def test_forged_token_and_wrong_browser(oidc, monkeypatch):
     client = TestClient(app.app)
     params = begin(client)

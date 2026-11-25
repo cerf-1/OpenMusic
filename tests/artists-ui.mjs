@@ -6,16 +6,25 @@ try {
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   let failArtist=true,failHeader=true;
+  const collab=[
+    {name:'VILLIAN',browse_id:'UC'+'a'.repeat(22)},
+    {name:'madk1d',browse_id:'UC'+'b'.repeat(22)}
+  ];
   const headerRequests=[];
   await page.route('**/api/v1/**',async route=>{
     if(route.request().url().endsWith('/artist')) {
-      headerRequests.push(route.request().postDataJSON());
+      const request=route.request().postDataJSON();
+      headerRequests.push(request);
+      if(collab.some(credit=>credit.name===request.name))return route.fulfill({json:{name:request.name,browse_id:request.browse_id}});
       if(failHeader)return route.fulfill({status:503,json:{error:{message:'Profile temporarily unavailable'}}});
       return route.fulfill({json:{browse_id:'UCfRoOGGP0qMFHK7sYiL34_g',name:'Remote <Artist>',header_image:'/assets/cover-forest.jpg'}});
     }
     if(route.request().url().endsWith('/search')) {
       const {query,page:resultPage}=route.request().postDataJSON();
       if(query==='Remote <Artist>'&&failArtist)return route.fulfill({status:503,json:{error:{message:'Test search unavailable'}}});
+      if(['collab',...collab.map(credit=>credit.name)].includes(query)){
+        return route.fulfill({json:{items:[{video_id:'Cbcdefghijk',title:'Together',artist:'VILLIAN, madk1d',artist_credits:collab}],page:resultPage,has_more:false}});
+      }
       return route.fulfill({json:{items:query==='Remote <Artist>'?[
         {video_id:'Lmnopqrstuv',title:'Second song',artist:query,duration_seconds:180},
         {video_id:'Zbcdefghijk',title:'Unrelated song',artist:'Someone Else',duration_seconds:120}
@@ -28,7 +37,7 @@ try {
   await page.locator('.nav-item[data-view="search"]').click();
   await page.locator('#search-input').fill('remote');
   await page.locator('#resolve-form [type="submit"]').click();
-  await page.locator('#search-results .track-artist').click();
+  await page.locator('#search-results .track-artist a').click();
   assert.equal(await page.locator('#artist-title').textContent(),'Remote <Artist>');
   await page.getByRole('button',{name:'Retry',exact:true}).waitFor();
   assert.equal(await page.locator('.artist-header-image').count(),0);
@@ -63,6 +72,46 @@ try {
   assert.equal(headerRequests.length,2);
   await page.locator('.nav-item[data-view="home"]').click();
   assert.equal(await page.locator('.artist-card').count(),0);
+  await page.locator('.nav-item[data-view="search"]').click();
+  await page.locator('#search-input').fill('collab');
+  await page.locator('#resolve-form [type="submit"]').click();
+  const links=page.locator('#search-results .track-artist a');
+  await links.first().waitFor();
+  assert.deepEqual(await links.allTextContents(),collab.map(credit=>credit.name));
+  for(const credit of collab){
+    const link=links.getByText(credit.name,{exact:true});
+    const request=page.waitForRequest(req=>req.url().endsWith('/artist')&&req.postDataJSON().name===credit.name);
+    await link.click();
+    assert.deepEqual((await request).postDataJSON(),credit);
+    assert.equal(await page.locator('#artist-title').textContent(),credit.name);
+    assert.equal(new URLSearchParams(new URL(page.url()).hash.slice(1)).get('browse_id'),credit.browse_id);
+    await page.locator('.artist-back').click();
+  }
+  const direct=await links.last().getAttribute('href');
+  await page.locator('#search-results .track-text').click();
+  assert.deepEqual(await page.locator('#player-artist a').allTextContents(),collab.map(credit=>credit.name));
+  await page.locator('.mini-art-button').click();
+  assert.deepEqual(await page.locator('#full-artist a').allTextContents(),collab.map(credit=>credit.name));
+  await page.locator('#full-artist a').last().click();
+  assert.equal(await page.locator('#artist-title').textContent(),'madk1d');
+  await page.locator('.artist-back').click();
+  await page.locator('#quick-search-input').fill('collab');
+  await page.locator('#quick-search-input').press('Enter');
+  const quickLinks=page.locator('.quick-search-track a');
+  await quickLinks.first().waitFor();
+  assert.deepEqual(await quickLinks.allTextContents(),collab.map(credit=>credit.name));
+  await quickLinks.first().click();
+  assert.equal(await page.locator('#artist-title').textContent(),'VILLIAN');
+  const directPage=await browser.newPage();
+  await directPage.route('**/api/v1/**',async route=>{
+    const request=route.request();
+    if(request.url().endsWith('/artist'))return route.fulfill({json:{name:request.postDataJSON().name}});
+    if(request.url().endsWith('/search'))return route.fulfill({json:{items:[],has_more:false}});
+    return route.fulfill({status:401,json:{}});
+  });
+  await directPage.goto(new URL(direct,page.url()).href);
+  assert.equal(await directPage.locator('#artist-title').textContent(),'madk1d');
+  await directPage.close();
   assert.deepEqual(errors,[]);
   console.log('Artist browser regression passed: navigation, responsive layout, remote retry/filtering, search restoration, menus.');
 } finally { await browser.close(); }
