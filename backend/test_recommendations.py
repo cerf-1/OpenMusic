@@ -15,7 +15,7 @@ def test_radio_preserves_order_filters_entries_and_normalizes_metadata(monkeypat
         'thumbnail': [{'url': 'https://lh3.googleusercontent.com/cover', 'width': 100, 'height': 100}],
         'album': {'id': 'MPREb_release', 'name': 'Release'},
     }
-    second = {'videoId': 'C1234567890', 'title': 'Second'}
+    second = {'videoId': 'C1234567890', 'title': 'Second', 'artists': 1, 'thumbnail': 2}
     more = [{'videoId': f'D{i:010}', 'title': str(i)} for i in range(20)]
 
     class Radio:

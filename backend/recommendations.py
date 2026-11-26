@@ -14,7 +14,9 @@ LIMIT = 12
 
 def queue_item(track, video_id, title):
     credits = []
-    for artist in track.get('artists') or []:
+    artists = track.get('artists')
+    thumbnails = track.get('thumbnail')
+    for artist in artists if isinstance(artists, list) else []:
         if not isinstance(artist, dict) or not isinstance(artist.get('name'), str):
             continue
         name = artist['name'].strip()
@@ -33,7 +35,7 @@ def queue_item(track, video_id, title):
             duration = duration * 60 + int(part)
 
     try:
-        cover = choose_cover({'thumbnails': track.get('thumbnail')})
+        cover = choose_cover({'thumbnails': thumbnails if isinstance(thumbnails, list) else []})
     except ResolveError:
         cover = f'https://i.ytimg.com/vi/{video_id}/mqdefault.jpg'
 
@@ -63,8 +65,11 @@ def get_recommendations(video_id):
         log.warning('YouTube Music Radio unavailable: %s', type(exc).__name__)
         return {'items': []}
 
+    if not isinstance(tracks, list):
+        return {'items': []}
+
     items, seen = [], {video_id}
-    for track in tracks or []:
+    for track in tracks:
         if not isinstance(track, dict):
             continue
         candidate, title = track.get('videoId'), track.get('title')

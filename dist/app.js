@@ -50,11 +50,11 @@ const tracks = [];
 const placeholderArt = './assets/hero.png';
 let queueRecommendations = null;
 
-const engine = new AudioEngine(() => { if(state.repeat){seek(0);engine.play(tracks[state.current],0).catch(()=>toast('Tap Play to resume audio.'));}else if(state.queuePosition+1<state.queue.length)nextTrack();else {cancelQueueRecommendations();state.playing=false;state.position=tracks[state.current]?.duration || 0;updatePlayback();} }, message => {state.loading=false;state.playing=false;updatePlayback();toast(message);}, () => {state.loading=false;state.playing=true;updatePlayback();}, () => {++state.sessionPlay;state.position=engine.getCurrentTime();state.loading=false;state.playing=false;updatePlayback();});
+const engine = new AudioEngine(() => { if(state.repeat){seek(0);engine.play(tracks[state.current],0).catch(()=>toast('Tap Play to resume audio.'));}else if(state.queuePosition+1<state.queue.length)nextTrack();else {state.playing=false;state.position=tracks[state.current]?.duration || 0;updatePlayback();} }, message => {state.loading=false;state.playing=false;updatePlayback();toast(message);}, () => {state.loading=false;state.playing=true;updatePlayback();}, () => {++state.sessionPlay;state.position=engine.getCurrentTime();state.loading=false;state.playing=false;updatePlayback();});
 let searchRequest = 0;
 function readSaved(key, fallback) { try { const result=JSON.parse(localStorage.getItem(key)); return result ?? fallback; } catch { return fallback; } }
 const savedLists=readSaved('openmusic-playlists',[]);
-const state = {view:'home',current:null,loading:false,playing:false,position:0,volume:.65,previousVolume:.65,shuffle:false,repeat:false,queue:[],queuePosition:-1,manualQueue:new Set(),recommendedQueue:false,likes:new Set(),user:null,authError:'',favoriteErrors:new Map(),favoritesBusy:false,authEpoch:0,playlists:[],overlay:null,returnFocus:null,sessionPlay:0};
+const state = {view:'home',current:null,loading:false,playing:false,position:0,volume:.65,previousVolume:.65,shuffle:false,repeat:false,queue:[],queuePosition:-1,manualQueue:new Set(),radioQueue:new Set(),likes:new Set(),user:null,authError:'',favoriteErrors:new Map(),favoritesBusy:false,authEpoch:0,playlists:[],overlay:null,returnFocus:null,sessionPlay:0};
 state.playlists=Array.isArray(savedLists)?savedLists.filter(p=>typeof p?.name==='string'&&Array.isArray(p.tracks)).map(p=>({
   name:p.name,
   tracks:p.tracks.filter(t=>/^[A-Za-z0-9_-]{11}$/.test(t?.video_id || '')&&typeof t.title==='string').map(registerTrack)
@@ -348,7 +348,7 @@ quickResults.addEventListener('click',event=>{
   if(event.target.closest('.artist-link'))return;
   const track=event.target.closest('.quick-search-track')?.querySelector('[data-quick-track]');
   const page=Number(event.target.closest('[data-quick-page]')?.dataset.quickPage);
-  if(track){closeQuickSearch(true);playRecommended(Number(track.dataset.quickTrack));}
+  if(track){closeQuickSearch(true);playWithRadio(Number(track.dataset.quickTrack));}
   else if(page>0 && Math.abs(page-quickPage)===1)runQuickSearch(page);
 });
 function outsideQuickSearch(target) {return !quickPanel.contains(target) && !quickForm.contains(target);}
@@ -360,24 +360,23 @@ function cancelQueueRecommendations() {
   queueRecommendations?.abort();
   queueRecommendations=null;
 }
-async function playRecommended(id, list=[id]) {
+async function playWithRadio(id, list=[id]) {
   if(!tracks[id])return;
   const manual=[...state.manualQueue].filter(track=>track!==id);
   const position=list.indexOf(id);
   const before=list.slice(0,position).filter(track=>!manual.includes(track));
   const after=list.slice(position+1).filter(track=>!manual.includes(track));
   playTrack(id,[...before,id,...manual,...after],before.length);
-  state.recommendedQueue=true;
   state.manualQueue=new Set(manual);
   const request=new AbortController();
   queueRecommendations=request;
   const items=await recommendTracks(tracks[id].video_id,request.signal);
-  if(request.signal.aborted)return;
+  if(queueRecommendations!==request)return;
   queueRecommendations=null;
   const present=new Set(state.queue);
   for(const item of items){
     const next=registerTrack(item);
-    if(!present.has(next)){state.queue.push(next);present.add(next);}
+    if(!present.has(next)){state.queue.push(next);state.radioQueue.add(next);present.add(next);}
   }
   if(state.overlay?.type==='queue')renderQueue();
 }
@@ -387,7 +386,7 @@ async function playTrack(id,queue=null,queuePosition=null) {
     cancelQueueRecommendations();
     state.queue=[...queue];
     state.manualQueue.clear();
-    state.recommendedQueue=false;
+    state.radioQueue.clear();
   }
   const request=++state.sessionPlay;
   state.current=id;
@@ -417,7 +416,7 @@ async function togglePlay() {
   if(state.current===null)return;
   const wasPlaying=state.playing;
   if(state.playing || state.loading){
-    ++state.sessionPlay;if(!state.loading)state.position=engine.getCurrentTime();else cancelQueueRecommendations();engine.pause();state.loading=false;state.playing=false;
+    ++state.sessionPlay;if(!state.loading)state.position=engine.getCurrentTime();engine.pause();state.loading=false;state.playing=false;
   } else {
     const request=++state.sessionPlay;
     state.loading=true;updatePlayback();
@@ -434,8 +433,13 @@ function nextTrack(direction=1) {
   if(direction>0&&state.manualQueue.size){
     const manualPosition=state.queue.findIndex((id,i)=>i>state.queuePosition&&state.manualQueue.has(id));
     if(manualPosition!==-1)position=manualPosition;
-  }else if(direction>0&&state.shuffle&&!state.recommendedQueue&&position<state.queue.length){
-    position+=Math.floor(Math.random()*(state.queue.length-position));
+  }else if(direction>0&&state.shuffle&&position<state.queue.length){
+    const radioPosition=state.queue.findIndex((id,i)=>i>=position&&state.radioQueue.has(id));
+    const end=radioPosition<0?state.queue.length:radioPosition;
+    if(end>position){
+      const pick=position+Math.floor(Math.random()*(end-position));
+      [state.queue[position],state.queue[pick]]=[state.queue[pick],state.queue[position]];
+    }
   }
   if(state.queue[position]!==undefined)playTrack(state.queue[position],null,position);
 }
@@ -443,6 +447,7 @@ function enqueue(ids, first=false) {
   const current=state.queue.slice(0,state.queuePosition+1);
   const upcoming=state.queue.slice(state.queuePosition+1);
   const additions=[...new Set(ids)].filter(id=>tracks[id]&&state.current!==id);
+  for(const id of additions)state.radioQueue.delete(id);
   const manual=[...state.manualQueue].filter(id=>!additions.includes(id));
   state.manualQueue=new Set(first?[...additions,...manual]:[...manual,...additions]);
   state.queue=[...current,...state.manualQueue,...upcoming.filter(id=>!state.manualQueue.has(id))];
@@ -483,6 +488,15 @@ function newPlaylist() {smallModal('New playlist','<p>Name your playlist. The cu
 function customPlaylist(id) {const p=state.playlists[id];if(!p)return;showOverlay(`<div class="overlay-backdrop" data-backdrop><section class="modal" role="dialog" aria-modal="true" aria-labelledby="custom-title">${closeButton}<div class="modal-hero"><div class="large-heart collection-cover" style="height:130px;width:130px;border-radius:18px;background:var(--accent)">${icon('music')}</div><div><p class="modal-eyebrow">MADE BY YOU</p><h2 id="custom-title">${esc(p.name)}</h2><p>${p.tracks.length} ${trackWord(p.tracks.length)}</p></div></div><div class="modal-body"><div class="modal-actions"><button class="pill-button" data-action="play-custom" data-id="${id}">${icon('play')}Play</button><button class="secondary-button" data-action="add-current-custom" data-id="${id}">${icon('plus')}Current track</button></div>${p.tracks.map((id,i)=>trackRow(id,i)).join('')}</div></section></div>`,{type:'custom',id});}
 function trackMenu(id) {const t=tracks[id];smallModal(esc(t.title),`<p>${artistLinks(t)}${artistLabel(t)?' · ':''}${esc(t.album)}</p><div style="display:grid;gap:10px;margin-top:25px"><button class="secondary-button" data-action="queue-track" data-id="${id}">${icon('queue')}Play next</button><button class="secondary-button" data-action="like" data-id="${id}">${icon('heart')}${state.likes.has(id)?'Remove from Liked Songs':'Add to Liked Songs'}</button>${state.playlists.map((p,i)=>`<button class="secondary-button" data-action="add-track-custom" data-id="${i}" data-track="${id}">${icon('plus')}${esc(p.name)}</button>`).join('')}</div>`,'track-menu');}
 function addToCustom(index,id) {if(!tracks[id])return;const p=state.playlists[index];if(p.tracks.includes(id)){toast('Already in this playlist');return;}p.tracks.push(id);persist();updateSidebar();toast(`Added to “${p.name}”`);if(state.overlay?.type==='custom')customPlaylist(index);}
+function shuffleArtist() {
+  const artist=currentArtist();
+  if(!artist?.tracks.length)return;
+  state.shuffle=!state.shuffle;
+  if(!state.shuffle){updatePlayback();return;}
+  const list=[...artist.tracks];
+  const [id]=list.splice(Math.floor(Math.random()*list.length),1);
+  playWithRadio(id,[id,...list]);
+}
 const actions={
   'open-artist':el=>{
     const {name,browseId}=el.tagName==='A' ? artistLinkTarget(el.hash) :
@@ -492,8 +506,8 @@ const actions={
   'artist-back':backFromArtist,
   'artist-header-retry':()=>loadArtistHeader(),
   'artist-more':()=>loadArtistTracks(),
-  'play-artist':()=>{const a=currentArtist();if(a?.tracks.length){if(artistIsCurrent(a))togglePlay();else playTrack(a.tracks[0],a.tracks);}},
-  'shuffle-artist':()=>{const a=currentArtist();if(!a?.tracks.length)return;state.shuffle=!state.shuffle;if(state.shuffle)playTrack(a.tracks[Math.floor(Math.random()*a.tracks.length)],a.tracks);else updatePlayback();},
+  'play-artist':()=>{const a=currentArtist();if(a?.tracks.length){if(artistIsCurrent(a))togglePlay();else playWithRadio(a.tracks[0],a.tracks);}},
+  'shuffle-artist':shuffleArtist,
   'queue-artist':()=>{const a=currentArtist();if(a){enqueue(a.tracks);const button=document.querySelector('[data-action="queue-artist"]');if(button){button.innerHTML=icon('check');button.setAttribute('aria-label','Artist tracks added to queue');button.disabled=true;}}},
   fullscreen:renderFullscreen,
   navigate: el=>navigate(el.dataset.view),
@@ -502,8 +516,9 @@ const actions={
     if(row){playTrack(id,null,Number(row.dataset.queuePosition));return;}
     let list;
     if(state.overlay?.type==='custom')list=state.playlists[state.overlay.id].tracks;
+    else if(!state.overlay&&state.view==='liked')list=[...state.likes];
     else if(!state.overlay&&state.view==='artist')list=currentArtist()?.tracks;
-    playRecommended(id,list);
+    playWithRadio(id,list);
   },
   'toggle-play':togglePlay,
   next:()=>nextTrack(),previous:()=>nextTrack(-1),
@@ -516,13 +531,13 @@ const actions={
   'close-overlay':()=>closeOverlay(),
   'search-page':el=>resolveSearch(Number(el.dataset.page),true),
   'clear-search':()=>{cancelSearch();shownSearch=null;const input=document.querySelector('#search-input');input.value='';document.querySelector('#search-results').textContent='';updateSearchButton();input.focus();},
-  'play-liked':()=>playRecommended(state.likes.values().next().value),
+  'play-liked':()=>{const ids=[...state.likes];playWithRadio(ids[0],ids);},
   'remove-queue':el=>{const id=Number(el.dataset.id);const rowPosition=Number(el.closest('[data-queue-position]')?.dataset.queuePosition);const index=Number.isInteger(rowPosition)&&rowPosition>state.queuePosition&&state.queue[rowPosition]===id?rowPosition:state.queue.indexOf(id,state.queuePosition+1);if(index>=0){state.queue.splice(index,1);state.manualQueue.delete(id);}renderQueue();},
   'queue-track':el=>{enqueue([Number(el.dataset.id)],true);closeOverlay();},
   'track-menu':el=>trackMenu(Number(el.dataset.id)),
   'new-playlist':newPlaylist,
   'custom-playlist':el=>customPlaylist(Number(el.dataset.id)),
-  'play-custom':el=>{const ids=state.playlists[Number(el.dataset.id)].tracks;if(ids.length)playTrack(ids[0],ids);},
+  'play-custom':el=>{const ids=state.playlists[Number(el.dataset.id)].tracks;playWithRadio(ids[0],ids);},
   'add-current-custom':el=>addToCustom(Number(el.dataset.id),state.current),
   'add-track-custom':el=>addToCustom(Number(el.dataset.id),Number(el.dataset.track)),
   profile:showProfile,
@@ -593,7 +608,7 @@ function clearAccount() {
     ++state.sessionPlay;
     engine.clearRemote();
     state.current=null;state.position=0;state.loading=false;state.playing=false;
-    state.queue=[];state.queuePosition=-1;state.manualQueue.clear();state.recommendedQueue=false;
+    state.queue=[];state.queuePosition=-1;state.manualQueue.clear();state.radioQueue.clear();
     if(state.view==='artist')navigate('home');
     if(state.view==='search')content.innerHTML=searchContent();
   }
