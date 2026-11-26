@@ -66,7 +66,7 @@ try {
       if(video_id===a.video_id)await aResponse;
       if(video_id===b.video_id)await bResponse;
       if(video_id===manual.video_id)return route.fulfill({status:504,json:{}});
-      const items=video_id===a.video_id?[old]:video_id===b.video_id?[rec1,rec2,rec3]:[];
+      const items=video_id===a.video_id?[old]:video_id===b.video_id?[rec1,rec2,rec3]:video_id===old.video_id?[rec3]:[];
       await route.fulfill({json:{items}}).catch(()=>{});
       return;
     }
@@ -85,6 +85,7 @@ try {
   const nowPlaying=title=>page.waitForFunction(title=>
     document.querySelector('#player-title').textContent===title && document.body.classList.contains('is-playing'),title);
   const queue=()=>page.locator('.queue-panel .track-title').allTextContents();
+  const home=()=>page.locator('#home-radio .track-title').allTextContents();
   const openQueue=()=>page.locator('.player .queue-button').click();
   const close=()=>page.keyboard.press('Escape');
   const count=(selector,n)=>page.waitForFunction(([selector,n])=>document.querySelectorAll(selector).length===n,[selector,n]);
@@ -116,6 +117,11 @@ try {
   assert.deepEqual(recommendationCalls,[a.video_id,b.video_id]);
   assert(resolveCalls.includes(rec1.video_id));
   await close();
+  await nav('home');
+  assert.deepEqual(await home(),[rec1.title,rec2.title,rec3.title]);
+  assert.equal(await page.getByText(`Based on ${b.title}`,{exact:true}).count(),1);
+  assert.deepEqual(recommendationCalls,[a.video_id,b.video_id]);
+  await search();
 
   await page.locator('.main-play').click();
   await page.waitForFunction(()=>!document.body.classList.contains('is-playing'));
@@ -163,16 +169,23 @@ try {
   failSave=false;
   await heart(b.title).click();
   await page.waitForFunction(()=>document.querySelector('#liked-count').textContent==='1 track');
+  assert.deepEqual(recommendationCalls,[a.video_id,b.video_id,manual.video_id]);
   await nav('home');
   assert.equal(await page.getByRole('button',{name:'Search music',exact:true}).count(),1);
+  await count('#home-radio .track-row',3);
+  assert.deepEqual(await home(),[rec1.title,rec2.title,rec3.title]);
+  await openQueue();
+  assert.deepEqual(await queue(),[]);
+  await close();
   await nav('search');
   assert.equal(await page.locator('#search-results .track-title').count(),0);
-  assert.deepEqual(recommendationCalls,[a.video_id,b.video_id,manual.video_id]);
+  const beforeLiked=[a.video_id,b.video_id,manual.video_id,b.video_id];
+  assert.deepEqual(recommendationCalls,beforeLiked);
   await search();
   await heart(a.title).click();
   await page.waitForFunction(()=>document.querySelector('#liked-count').textContent==='2 tracks');
   await liked();
-  assert.deepEqual(recommendationCalls,[a.video_id,b.video_id,manual.video_id]);
+  assert.deepEqual(recommendationCalls,beforeLiked);
   await page.locator('[data-action=play-liked]').click();
   await nowPlaying(a.title);
   await openQueue();
@@ -180,7 +193,7 @@ try {
   assert.deepEqual(await queue(),[a.title,b.title,old.title]);
   await row('.queue-panel',old.title).locator('.track-text').click();
   await nowPlaying(old.title);
-  assert.deepEqual(recommendationCalls,[a.video_id,b.video_id,manual.video_id,a.video_id]);
+  assert.deepEqual(recommendationCalls,[...beforeLiked,a.video_id]);
   await close();
   await page.getByRole('button',{name:/My Mix/}).click();
   await page.locator('.modal [data-action=play-custom]').click();
@@ -199,10 +212,24 @@ try {
   await count('.queue-panel .track-row',2);
   assert.deepEqual(await queue(),[a.title,old.title]);
   await close();
+
+  // A restored account gets Home radio before playback. Selecting a result seeds both views.
+  await nav('home');
+  await page.reload();
+  await row('#home-radio',old.title).waitFor();
+  assert.equal(await page.locator('#player-title').textContent(),'No track selected');
+  assert.deepEqual(recommendationCalls,[...beforeLiked,a.video_id,b.video_id,a.video_id,a.video_id]);
+  await row('#home-radio',old.title).locator('.track-text').click();
+  await nowPlaying(old.title);
+  await row('#home-radio',rec3.title).waitFor();
+  await openQueue();
+  assert.deepEqual(await queue(),[old.title,rec3.title]);
+  await close();
   await page.locator('.user-profile').click();
   await page.getByRole('button',{name:'Sign out'}).click();
   await page.locator('.user-profile').filter({hasText:'Guest'}).waitFor();
-  assert.deepEqual(recommendationCalls,[a.video_id,b.video_id,manual.video_id,a.video_id,b.video_id,a.video_id]);
+  assert.deepEqual(await home(),[]);
+  assert.deepEqual(recommendationCalls,[...beforeLiked,a.video_id,b.video_id,a.video_id,a.video_id,old.video_id]);
   assert.deepEqual(errors,[]);
   console.log('Recommendations browser regression passed.');
 } finally {

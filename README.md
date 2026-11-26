@@ -46,7 +46,8 @@ uvicorn --app-dir backend app:app --host 127.0.0.1 --port 8000 --no-access-log
 
 Откройте [OpenMusic](http://127.0.0.1:8000). Backend раздаёт `dist/` и `/api`
 с одного origin. Поиск, resolver и рекомендации для очереди доступны без БД.
-Очередь пополняет YouTube Music Radio по выбранному треку. [ТЗ](docs/youtube-music-radio-spec.md). Если БД недоступна,
+YouTube Music Radio пополняет Up next и показывает рекомендации на Home. До первого запуска трека Home может подобрать радио по последнему лайку. [ТЗ](docs/youtube-music-radio-spec.md)
+Если БД недоступна,
 операции авторизации/избранного отвечают `503`; интерфейс показывает ошибку и не
 подтверждает сохранение. Без Telegram credentials гостевой режим работает,
 `/auth/telegram/start` отвечает контролируемым `503`.
