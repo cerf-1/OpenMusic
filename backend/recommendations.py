@@ -1,57 +1,79 @@
-"""Match Music Matcher pairs to verified YouTube Music search results."""
-import asyncio
+"""Build a playback queue from YouTube Music Radio."""
 import logging
-import unicodedata
-from concurrent.futures import ThreadPoolExecutor, wait
+import re
+from functools import partial
 
-from resolver import search
+from requests import Session
+from ytmusicapi import YTMusic
+
+from resolver import ID, ResolveError, choose_cover
 
 log = logging.getLogger(__name__)
+LIMIT = 12
 
 
-def normalize(value):
-    return ''.join(c for c in unicodedata.normalize('NFKC', value or '').casefold() if c.isalnum())
-
-
-def match_track(artist, title):
-    for item in search(f'{artist} {title}')['items']:
-        if normalize(item['title']) != normalize(title):
+def queue_item(track, video_id, title):
+    credits = []
+    for artist in track.get('artists') or []:
+        if not isinstance(artist, dict) or not isinstance(artist.get('name'), str):
             continue
-        artists = item.get('artists') or [item.get('artist')]
-        if normalize(artist) in {normalize(name) for name in [item.get('artist'), *artists]}:
-            return item
-    return None
+        name = artist['name'].strip()
+        if not name:
+            continue
+        credit = {'name': name}
+        browse_id = artist.get('id')
+        if isinstance(browse_id, str) and re.fullmatch(r'UC[A-Za-z0-9_-]{22}', browse_id):
+            credit['browse_id'] = browse_id
+        credits.append(credit)
 
-
-def get_recommendations(artist, title, video_id):
-    from music_matcher import find_similar_tracks
+    length = track.get('length')
+    duration = 0
+    if isinstance(length, str) and re.fullmatch(r'[0-9]{1,4}(?::[0-5][0-9]){1,2}', length):
+        for part in length.split(':'):
+            duration = duration * 60 + int(part)
 
     try:
-        pairs = asyncio.run(find_similar_tracks(artist, title, limit=12, timeout=18, headless=True))
+        cover = choose_cover({'thumbnails': track.get('thumbnail')})
+    except ResolveError:
+        cover = f'https://i.ytimg.com/vi/{video_id}/mqdefault.jpg'
+
+    names = [credit['name'] for credit in credits]
+    item = {
+        'video_id': video_id, 'title': title, 'artist': ', '.join(names) or None,
+        'duration_seconds': duration or None, 'cover_link': cover,
+    }
+    if credits:
+        item.update(artists=names, artist_credits=credits)
+    album = track.get('album')
+    if isinstance(album, dict):
+        album_id, name = album.get('id'), album.get('name')
+        if (isinstance(album_id, str) and re.fullmatch(r'MP[A-Za-z0-9_-]{3,100}', album_id)
+                and isinstance(name, str) and name.strip()):
+            item['album'] = {'id': album_id, 'title': name.strip()}
+    return item
+
+
+def get_recommendations(video_id):
+    try:
+        with Session() as session:
+            session.request = partial(session.request, timeout=5)
+            radio = YTMusic(requests_session=session)
+            tracks = radio.get_watch_playlist(videoId=video_id, radio=True, limit=LIMIT + 1)['tracks']
     except Exception as exc:
-        log.warning('Music Matcher unavailable: %s', type(exc).__name__)
-        return {'items': []}
-    seed = normalize(artist), normalize(title)
-    pairs = [pair for pair in pairs if tuple(map(normalize, pair)) != seed]
-    if not pairs:
+        log.warning('YouTube Music Radio unavailable: %s', type(exc).__name__)
         return {'items': []}
 
-    pool = ThreadPoolExecutor(max_workers=4)
-    futures = [pool.submit(match_track, *pair) for pair in pairs]
-    done, _ = wait(futures, timeout=12)
-    pool.shutdown(wait=False, cancel_futures=True)
-    items, seen_ids, seen_pairs = [], {video_id}, {seed}
-    for pair, future in zip(pairs, futures):
-        if future not in done:
+    items, seen = [], {video_id}
+    for track in tracks or []:
+        if not isinstance(track, dict):
             continue
-        try:
-            item = future.result()
-        except Exception as exc:
-            log.warning('Recommendation search unavailable: %s', type(exc).__name__)
+        candidate, title = track.get('videoId'), track.get('title')
+        if not isinstance(candidate, str) or not ID.fullmatch(candidate) or candidate in seen:
             continue
-        key = tuple(map(normalize, pair))
-        if item and item['video_id'] not in seen_ids and key not in seen_pairs:
-            seen_ids.add(item['video_id'])
-            seen_pairs.add(key)
-            items.append(item)
+        if not isinstance(title, str) or not title.strip():
+            continue
+        items.append(queue_item(track, candidate, title.strip()))
+        seen.add(candidate)
+        if len(items) == LIMIT:
+            break
     return {'items': items}

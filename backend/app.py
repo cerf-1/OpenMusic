@@ -178,8 +178,6 @@ async def search_endpoint(body: SearchRequest):
 
 class RecommendationRequest(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True, str_strip_whitespace=True)
-    artist: str = Field(min_length=1, max_length=300)
-    title: str = Field(min_length=1, max_length=300)
     video_id: str = Field(pattern=r'^[A-Za-z0-9_-]{11}$')
 
 
@@ -189,12 +187,12 @@ recommendation_slots = asyncio.Semaphore(2)
 @app.post('/api/v1/recommendations')
 async def recommendations_endpoint(body: RecommendationRequest):
     try:
-        await asyncio.wait_for(recommendation_slots.acquire(), timeout=34)
+        await asyncio.wait_for(recommendation_slots.acquire(), timeout=2)
     except TimeoutError:
-        return {'items': []}
+        return JSONResponse({'items': []}, headers={'Cache-Control': 'no-store'})
     try:
         kind, result = await asyncio.to_thread(
-            run_resolve, None, None, timeout=34, recommendation_request=body.model_dump()
+            run_resolve, None, None, timeout=8, recommendation_request=body.model_dump()
         )
     finally:
         recommendation_slots.release()

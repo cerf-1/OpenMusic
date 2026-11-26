@@ -14,13 +14,12 @@ export async function searchTracks(body, signal) {
   return data;
 }
 
-export async function recommendTracks(track, signal) {
-  if (!track.artist?.trim()) return [];
+export async function recommendTracks(video_id, signal) {
   try {
     const response = await fetch(`${API_BASE}/api/v1/recommendations`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({video_id:track.video_id, artist:track.artist, title:track.title}),
-      signal:AbortSignal.any([signal, AbortSignal.timeout(70000)])
+      body:JSON.stringify({video_id}),
+      signal:AbortSignal.any([signal, AbortSignal.timeout(12000)])
     });
     const data = response.ok ? await response.json() : null;
     return Array.isArray(data?.items) ? data.items : [];

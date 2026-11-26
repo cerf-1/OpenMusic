@@ -1,60 +1,80 @@
 import asyncio
-import sys
-from types import SimpleNamespace
+
+from fastapi.testclient import TestClient
 
 import recommendations
-from app import RecommendationRequest, recommendations_endpoint
+from app import RecommendationRequest, app, recommendations_endpoint
 from resolver import music_search_metadata
 
 
-def test_confirmed_matches_keep_matcher_order_and_skip_seed_duplicates_and_failures(monkeypatch):
-    async def parser(artist, title, **options):
-        assert (artist, title) == ('Seed', 'Original')
-        assert options == {'limit': 12, 'timeout': 18, 'headless': True}
-        return [
-            ('Seed', 'Original'), ('One', 'First'), ('Two', 'Missing'),
-            ('Two', 'Unavailable'), ('THREE', 'Second'), ('ONE', 'FIRST'),
-            ('Four', 'Repeated ID'), ('Five', 'Seed ID'),
-        ]
+def test_radio_preserves_order_filters_entries_and_normalizes_metadata(monkeypatch):
+    seed = 'A1234567890'
+    first = {
+        'videoId': 'B1234567890', 'title': ' First ', 'length': '1:02:03',
+        'artists': [{'name': ' Artist ', 'id': 'UC' + 'x' * 22}, {'name': 'Guest'}],
+        'thumbnail': [{'url': 'https://lh3.googleusercontent.com/cover', 'width': 100, 'height': 100}],
+        'album': {'id': 'MPREb_release', 'name': 'Release'},
+    }
+    second = {'videoId': 'C1234567890', 'title': 'Second'}
+    more = [{'videoId': f'D{i:010}', 'title': str(i)} for i in range(20)]
 
-    monkeypatch.setitem(sys.modules, 'music_matcher', SimpleNamespace(find_similar_tracks=parser))
+    class Radio:
+        def __init__(self, requests_session):
+            assert requests_session.request.keywords['timeout'] == 5
 
-    def search(query):
-        if query == 'Two Unavailable':
-            raise TimeoutError()
-        wrong = {'artist': 'Cover Band', 'title': 'First', 'video_id': 'wrong'}
-        matches = {
-            'One First': [wrong, {'artist': 'One', 'title': 'First', 'video_id': 'first'}],
-            'Two Missing': [wrong],
-            'THREE Second': [{'artist': 'Three, Other', 'artists': ['Three', 'Other'],
-                              'title': 'Second', 'video_id': 'second',
-                              'album': {'id': 'MPREb_release', 'title': 'Second Album'}}],
-            'ONE FIRST': [{'artist': 'One', 'title': 'First', 'video_id': 'alt'}],
-            'Four Repeated ID': [{'artist': 'Four', 'title': 'Repeated ID', 'video_id': 'second'}],
-            'Five Seed ID': [{'artist': 'Five', 'title': 'Seed ID', 'video_id': 'seed'}],
-        }
-        return {'items': matches[query]}
+        def get_watch_playlist(self, **options):
+            assert options == {'videoId': seed, 'radio': True, 'limit': 13}
+            return {'tracks': [None, {'videoId': seed, 'title': 'Seed'},
+                               {'videoId': 'bad', 'title': 'Invalid'},
+                               {'videoId': 'C1234567890', 'title': ' '},
+                               first, first, second, *more]}
 
-    monkeypatch.setattr(recommendations, 'search', search)
-    items = recommendations.get_recommendations('Seed', 'Original', 'seed')['items']
-    assert [item['video_id'] for item in items] == ['first', 'second']
-    assert items[1]['album']['title'] == 'Second Album'
+    monkeypatch.setattr(recommendations, 'YTMusic', Radio)
+    items = recommendations.get_recommendations(seed)['items']
+    assert [item['video_id'] for item in items] == ['B1234567890', 'C1234567890'] + [
+        track['videoId'] for track in more[:10]
+    ]
+    assert items[0] == {
+        'video_id': 'B1234567890', 'title': 'First', 'artist': 'Artist, Guest',
+        'artists': ['Artist', 'Guest'],
+        'artist_credits': [{'name': 'Artist', 'browse_id': 'UC' + 'x' * 22}, {'name': 'Guest'}],
+        'duration_seconds': 3723, 'cover_link': 'https://lh3.googleusercontent.com/cover',
+        'album': {'id': 'MPREb_release', 'title': 'Release'},
+    }
+    assert items[1] == {
+        'video_id': 'C1234567890', 'title': 'Second', 'artist': None, 'duration_seconds': None,
+        'cover_link': 'https://i.ytimg.com/vi/C1234567890/mqdefault.jpg',
+    }
 
 
-def test_parser_failure_and_empty_result_do_not_run_search(monkeypatch):
-    async def timeout(*args, **kwargs):
-        raise TimeoutError()
+def test_radio_failure_and_empty_result(monkeypatch):
+    class Radio:
+        def __init__(self, requests_session):
+            pass
 
-    async def empty(*args, **kwargs):
-        return []
+        def get_watch_playlist(self, **options):
+            if options['videoId'] == 'A1234567890':
+                raise TimeoutError()
+            return {'tracks': []}
 
-    def unexpected_search(query):
-        raise AssertionError(query)
+    monkeypatch.setattr(recommendations, 'YTMusic', Radio)
+    for seed in ('A1234567890', 'B1234567890'):
+        assert recommendations.get_recommendations(seed) == {'items': []}
 
-    monkeypatch.setattr(recommendations, 'search', unexpected_search)
-    for parser in [timeout, empty]:
-        monkeypatch.setitem(sys.modules, 'music_matcher', SimpleNamespace(find_similar_tracks=parser))
-        assert recommendations.get_recommendations('Seed', 'Original', 'seed') == {'items': []}
+
+def test_api_accepts_only_video_id(monkeypatch):
+    def run(query, video_id, *, timeout, recommendation_request):
+        assert timeout == 8
+        assert recommendation_request == {'video_id': 'A1234567890'}
+        return 'ok', {'items': []}
+
+    monkeypatch.setattr('app.run_resolve', run)
+    with TestClient(app) as client:
+        response = client.post('/api/v1/recommendations', json={'video_id': 'A1234567890'})
+        assert response.status_code == 200
+        assert response.json() == {'items': []}
+        assert response.headers['cache-control'] == 'no-store'
+        assert client.post('/api/v1/recommendations', json={'video_id': 'invalid'}).status_code == 422
 
 
 def test_only_linked_album_metadata_is_returned():
@@ -81,7 +101,7 @@ def test_only_linked_album_metadata_is_returned():
 def test_worker_timeout_returns_empty_items(monkeypatch):
     monkeypatch.setattr('app.run_resolve', lambda *args, **kwargs: ('error', ('RESOLVE_TIMEOUT', 'timeout')))
     response = asyncio.run(recommendations_endpoint(
-        RecommendationRequest(artist='Seed', title='Original', video_id='Abcdefghijk')
+        RecommendationRequest(video_id='Abcdefghijk')
     ))
     assert response.status_code == 200
     assert response.body == b'{"items":[]}'

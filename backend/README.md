@@ -14,9 +14,6 @@
 python3.12 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
-# При наличии google-chrome или chromium в PATH этот шаг пропускается.
-# На поддерживаемой Playwright платформе без системного браузера:
-# python -m playwright install chromium
 uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 

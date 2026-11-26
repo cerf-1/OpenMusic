@@ -39,22 +39,14 @@ cp .env.example .env
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements-test.txt
-# При наличии google-chrome или chromium в PATH этот шаг пропускается.
-# На поддерживаемой Playwright платформе без системного браузера:
-# python -m playwright install chromium
 docker compose up -d --wait mariadb
 python backend/migrate.py
 uvicorn --app-dir backend app:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-На Ubuntu 26.04 ошибка `Playwright does not support chromium on ubuntu26.04-x64`
-относится к скачиванию браузера через Playwright 1.56.0. При установленном
-`google-chrome` или `chromium` в `PATH` backend сам запустит системный браузер.
-Проверьте его командой `command -v google-chrome || command -v chromium` и
-перезапустите backend после установки Python-зависимостей.
-
 Откройте [OpenMusic](http://127.0.0.1:8000). Backend раздаёт `dist/` и `/api`
-с одного origin. Поиск, resolver и рекомендации для очереди доступны без БД. Если БД недоступна,
+с одного origin. Поиск, resolver и рекомендации для очереди доступны без БД.
+Очередь пополняет YouTube Music Radio по выбранному треку. [ТЗ](docs/youtube-music-radio-spec.md). Если БД недоступна,
 операции авторизации/избранного отвечают `503`; интерфейс показывает ошибку и не
 подтверждает сохранение. Без Telegram credentials гостевой режим работает,
 `/auth/telegram/start` отвечает контролируемым `503`.
