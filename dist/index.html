@@ -11,19 +11,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;650;700;750;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css?v=6" />
-  <link rel="stylesheet" href="./refinement.css?v=23" />
+  <link rel="stylesheet" href="./refinement.css?v=24" />
   <link rel="stylesheet" href="./liquid-glass.css?v=4" />
   <link rel="stylesheet" href="./fullscreen.css?v=16" />
   <link rel="stylesheet" href="./artwork-wave.css?v=2" />
-  <link rel="stylesheet" href="./quick-search.css?v=7" />
+  <link rel="stylesheet" href="./quick-search.css?v=11" />
   <link rel="stylesheet" href="./artists.css?v=7" />
 </head>
 <body>
   <aside class="sidebar" aria-label="Main navigation">
-    <button class="wordmark" data-action="navigate" data-view="home" aria-label="OpenMusic, home"><span class="brand-mark"><i></i><i></i><i></i><i></i></span>openmusic</button>
+    <button class="wordmark" data-action="navigate" data-view="home" aria-label="OpenMusic, Search"><span class="brand-mark"><i></i><i></i><i></i><i></i></span>openmusic</button>
     <nav class="main-nav">
-      <button class="nav-item active" data-action="navigate" data-view="home"><span data-icon="compass"></span><span>Home</span></button>
-      <button class="nav-item" data-action="navigate" data-view="search"><span data-icon="search"></span><span>Search</span></button>
+      <button class="nav-item active" data-action="navigate" data-view="home"><span data-icon="search"></span><span>Search</span></button>
       <button class="nav-item" data-action="navigate" data-view="library"><span data-icon="library"></span><span>Your Library</span></button>
     </nav>
     <div class="nav-label collection-label">YOUR LIBRARY<button class="icon-button small" data-action="new-playlist" aria-label="Create playlist"><span data-icon="plus"></span></button></div>
@@ -36,7 +35,7 @@
 
   <main class="main-shell">
     <header class="topbar">
-      <div class="breadcrumb" id="breadcrumb">HOME</div>
+      <div class="breadcrumb" id="breadcrumb">SEARCH</div>
       <div class="topbar-actions">
         <div class="quick-search-slot">
           <form id="quick-search-form" role="search" aria-label="Quick music search">
@@ -50,7 +49,11 @@
             <div id="quick-search-results"></div>
           </section>
         </div>
-        <button class="mobile-avatar avatar" data-action="profile" aria-label="Guest">Guest</button>
+        <div class="topbar-auth" aria-label="Account">
+          <button type="button" class="topbar-signup" data-action="login">Sign up</button>
+          <button type="button" class="topbar-login" data-action="login">Log in</button>
+        </div>
+        <button class="mobile-avatar avatar" data-action="profile" aria-label="Guest" hidden>Guest</button>
       </div>
     </header>
     <div id="content" tabindex="-1"></div>
@@ -63,8 +66,8 @@
     <div class="player-tools"><span class="audio-quality" >STEREO</span><div class="volume-control"><button class="icon-button volume-button" data-action="mute" aria-label="Mute"><span data-icon="volume"></span></button><input id="volume" type="range" min="0" max="1" step="0.01" value="0.65" aria-label="Volume" /></div><div class="player-view-controls"><button class="icon-button queue-button" data-action="queue" aria-label="Open queue" aria-expanded="false"><span data-icon="queue"></span></button><button class="icon-button fullscreen-button" data-action="fullscreen" aria-label="Open full screen player"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg></button></div></div>
   </section>
 
-  <nav class="mobile-nav" aria-label="Mobile navigation"><button data-action="navigate" data-view="home" class="active"><span data-icon="compass"></span>Home</button><button data-action="navigate" data-view="search"><span data-icon="search"></span>Search</button><button data-action="navigate" data-view="library"><span data-icon="library"></span>Library</button></nav>
+  <nav class="mobile-nav" aria-label="Mobile navigation"><button data-action="navigate" data-view="home" class="active"><span data-icon="search"></span>Search</button><button data-action="navigate" data-view="library"><span data-icon="library"></span>Library</button></nav>
   <div id="overlay-root"></div>
-  <script type="module" src="./app.js?v=49"></script>
+  <script type="module" src="./app.js?v=51"></script>
 </body>
 </html>

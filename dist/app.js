@@ -12,7 +12,6 @@ let miniWave = null;
 const playerMaterial = createPlayerMaterial(document.querySelector('.player'));
 
 const paths = {
-  compass:'<circle cx="12" cy="12" r="9"/><path d="m16 8-2.5 5.5L8 16l2.5-5.5L16 8Z"/>',
   search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/>',
   library:'<path d="M4 4v16M8 4v16M13 5l4-1 4 15-4 1-4-15Z"/>',
   heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
@@ -52,7 +51,6 @@ const placeholderArt = './assets/hero.png';
 let radioRequest = null, homeRadio = null;
 
 const engine = new AudioEngine(() => { if(state.repeat){seek(0);engine.play(tracks[state.current],0).catch(()=>toast('Tap Play to resume audio.'));}else if(state.queuePosition+1<state.queue.length)nextTrack();else {state.playing=false;state.position=tracks[state.current]?.duration || 0;updatePlayback();} }, message => {state.loading=false;state.playing=false;updatePlayback();toast(message);}, () => {state.loading=false;state.playing=true;updatePlayback();}, () => {++state.sessionPlay;state.position=engine.getCurrentTime();state.loading=false;state.playing=false;updatePlayback();});
-let searchRequest = 0;
 function readSaved(key, fallback) { try { const result=JSON.parse(localStorage.getItem(key)); return result ?? fallback; } catch { return fallback; } }
 const savedLists=readSaved('openmusic-playlists',[]);
 const state = {view:'home',current:null,loading:false,playing:false,position:0,volume:.65,previousVolume:.65,shuffle:false,repeat:false,queue:[],queuePosition:-1,manualQueue:new Set(),radioQueue:new Set(),playbackAlbum:null,likes:new Set(),user:null,authError:'',favoriteErrors:new Map(),favoritesBusy:false,authEpoch:0,playlists:[],overlay:null,returnFocus:null,sessionPlay:0};
@@ -108,7 +106,7 @@ function homeRadioContent() {
     <div class="section-heading"><h2 id="home-repeat-heading">On repeat</h2></div>
     ${seed===undefined?'':`<p class="search-meta">Based on ${esc(tracks[seed].title)}</p>`}
     ${ids?.length?`<div class="recent-tracks">${ids.map((id,i)=>trackRow(id,i)).join('')}</div>`:`<p class="search-meta" role="status">${status}</p>`}
-    ${!radio?`<button class="pill-button primary" data-action="navigate" data-view="search">${icon('search')}Search music</button>`:''}
+    ${!radio?`<button class="pill-button primary" data-action="focus-search">${icon('search')}Search music</button>`:''}
   </section>
   <div id="home-discovery">${homeDiscoveryContent()}</div>`;
 }
@@ -163,12 +161,11 @@ function renderHomeRadio() {
   region.innerHTML=homeRadioContent();
   refreshFavoriteButtons();
 }
-function searchContent() { return `<section class="search-page"><h1 class="page-title">Search</h1><form id="resolve-form" class="large-search">${icon('search')}<input id="search-input" type="search" placeholder="Songs or artists" autocomplete="off" aria-label="Search music" /><button class="icon-button" data-action="clear-search" aria-label="Clear search" type="button">${icon('close')}</button><button class="text-button" type="submit">Search</button></form><div id="search-results" aria-live="polite"></div></section>`; }
 function libraryContent() { return `<section class="library-page"><h1 class="page-title">Your Library</h1><div class="library-actions"><button class="tab active" data-action="navigate" data-view="liked">Liked Songs · ${state.likes.size}</button><button class="secondary-button" data-action="new-playlist">${icon('plus')}Create playlist</button></div><div class="section-heading"><h2>Playlists</h2></div>${state.playlists.map((p,i)=>`<button class="collection-item" data-action="custom-playlist" data-id="${i}"><span class="collection-cover">${icon('music')}</span><span>${esc(p.name)}<small>${p.tracks.length} ${trackWord(p.tracks.length)}</small></span>${icon('right')}</button>`).join('')}</section>`; }
 function likedContent() { const ids=[...state.likes]; return `<section class="library-page"><div class="collection-heading"><div class="large-heart">${icon('heart')}</div><div><p class="modal-eyebrow">YOUR COLLECTION</p><h1>Liked Songs</h1><p>${ids.length} ${trackWord(ids.length)}${state.user?' · Saved for you':''}</p></div></div>${ids.length?`<div class="library-actions"><button class="pill-button primary" data-action="play-liked">${icon('play')}Play liked songs</button></div>${trackTable(ids)}`:`<div class="empty-state"><span>${icon('heart')}</span><h2>Your favorites live here.</h2><p>Like a track to keep it close.</p><button class="pill-button primary" data-action="navigate" data-view="home">Explore music ${icon('arrow')}</button></div>`}</section>`; }
 function trackWord(n) { return n===1?'track':'tracks'; }
 function trackTable(ids) { return `<div class="track-table"><div class="table-labels"><span>#</span><span>TITLE</span><span>TIME</span></div>${ids.map((id,i)=>trackRow(id,i,{table:true})).join('')}</div>`; }
-function navigate(view,focusSearch=true) { setArtistLocation(null);cancelArtistLoad();artistHistory=[];closeQuickSearch();cancelSearch();closeOverlay(false);state.view=view;const templates={home:homeContent,search:searchContent,library:libraryContent,liked:likedContent}; content.innerHTML=(templates[view]||homeContent)();document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(view==='liked'?'library':view)));const labels={home:'FOR YOU',search:'SEARCH',library:'LIBRARY',liked:'LIKED SONGS'};document.querySelector('#breadcrumb').innerHTML=`${labels[view]||'FOR YOU'}`;window.scrollTo({top:0,behavior:'instant'});refreshFavoriteButtons();if(view==='home')loadHomeRadio();if(view==='search')updateSearchButton();if(view==='search'&&focusSearch)setTimeout(()=>document.querySelector('#search-input')?.focus(),80); }
+function navigate(view) { setArtistLocation(null);cancelArtistLoad();artistHistory=[];closeQuickSearch();closeOverlay(false);state.view=view;const templates={home:homeContent,library:libraryContent,liked:likedContent}; content.innerHTML=(templates[view]||homeContent)();document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(view==='liked'?'library':view)));const labels={home:'SEARCH',library:'LIBRARY',liked:'LIKED SONGS'};document.querySelector('#breadcrumb').innerHTML=`${labels[view]||'SEARCH'}`;window.scrollTo({top:0,behavior:'instant'});refreshFavoriteButtons();if(view==='home')loadHomeRadio(); }
 function updateSidebar() { document.querySelector('#liked-count').textContent=`${state.likes.size} ${trackWord(state.likes.size)}`;document.querySelector('#custom-playlists').innerHTML=state.playlists.map((p,i)=>`<button class="collection-item" data-action="custom-playlist" data-id="${i}"><span class="collection-cover">${icon('music')}</span><span>${esc(p.name)}<small>${p.tracks.length} ${trackWord(p.tracks.length)}</small></span></button>`).join(''); }
 let artistHistory=[], artistController=null, artistHeaderController=null;
 const artistHeaders=new Map();
@@ -212,8 +209,8 @@ function artistContent() {
 function openArtist(name,browseId) {
   const a=artistProfile(name,tracks,[],{browseId,allowEmpty:true});if(!a)return;
   if(state.view==='artist'&&currentArtist()?.key===(a.browseId || a.key)){closeOverlay();return;}
-  cancelArtistLoad();cancelSearch();closeQuickSearch();
-  artistHistory.push({view:state.view,artist:state.artist,html:content.innerHTML,scroll:window.scrollY,breadcrumb:document.querySelector('#breadcrumb').textContent,query:document.querySelector('#search-input')?.value,shownSearch});
+  cancelArtistLoad();closeQuickSearch();
+  artistHistory.push({view:state.view,artist:state.artist,scroll:window.scrollY,breadcrumb:document.querySelector('#breadcrumb').textContent});
   closeOverlay(false);state.view='artist';state.artist={name:a.name,browseId:a.browseId};setArtistLocation(state.artist);
   content.innerHTML=artistContent();document.querySelector('#breadcrumb').textContent='ARTIST';
   document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.remove('active'));
@@ -223,13 +220,12 @@ function openArtist(name,browseId) {
 }
 function backFromArtist() {
   cancelArtistLoad();const previous=artistHistory.pop();if(!previous){navigate('home');return;}
-  closeOverlay(false);state.view=previous.view;state.artist=previous.artist;shownSearch=previous.shownSearch;setArtistLocation(state.view==='artist'?state.artist:null);
+  closeOverlay(false);state.view=previous.view;state.artist=previous.artist;setArtistLocation(state.view==='artist'?state.artist:null);
   const templates={home:homeContent,library:libraryContent,liked:likedContent,artist:artistContent};
-  content.innerHTML=templates[state.view]?templates[state.view]():previous.html;
-  const input=document.querySelector('#search-input');if(input){input.value=previous.query || '';if(!input.value.trim())document.querySelector('#search-results').textContent='';}
+  content.innerHTML=templates[state.view]();
   document.querySelector('#breadcrumb').textContent=previous.breadcrumb;
   document.querySelectorAll('.nav-item,.mobile-nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===(state.view==='liked'?'library':state.view)));
-  updatePlayback();if(state.view==='search'){document.querySelector('#search-results')?.removeAttribute('aria-busy');updateSearchButton();}
+  updatePlayback();
   window.scrollTo({top:previous.scroll,behavior:'instant'});content.focus({preventScroll:true});
   if(state.view==='home')loadHomeRadio();
   if(state.view==='artist'){
@@ -264,11 +260,6 @@ async function loadArtistTracks() {
 }
 const searchCache = new Map();
 const queryKey = query => query.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-let searchController = null, searchBusy = false, shownSearch = null;
-function updateSearchButton() {
-  const input=document.querySelector('#search-input'), button=document.querySelector('#resolve-form [type="submit"]');
-  if(button) button.disabled=searchBusy || !queryKey(input.value) || !!searchCache.get(queryKey(input.value))?.has(1);
-}
 function searchCover(url) {
   return url?.replace(/^(https:\/\/i\.ytimg\.com\/vi\/[A-Za-z0-9_-]{11}\/)hqdefault\.jpg$/, '$1mqdefault.jpg');
 }
@@ -302,38 +293,6 @@ async function loadSearchResults(query, page, signal) {
   searchCache.get(key).set(page,entry);
   return entry;
 }
-function renderSearchPage(query, page, data) {
-  shownSearch={query,page};
-  const result=document.querySelector('#search-results');
-  result.innerHTML=`<p class="search-meta">${data.ids.length ? `Page ${page}` : 'No results'}</p>${data.ids.length?trackTable(data.ids):'<p>Try another song or artist.</p>'}<nav class="search-pagination" aria-label="Search result pages"><button class="text-button" data-action="search-page" data-page="${page-1}" ${page===1?'disabled':''}>${icon('left')}Previous</button><span>Page ${page}</span><button class="text-button" data-action="search-page" data-page="${page+1}" ${data.has_more?'':'disabled'}>Next${icon('right')}</button></nav>`;
-}
-function cancelSearch() { ++searchRequest; searchController?.abort(); searchBusy=false; }
-async function resolveSearch(page=1, pagination=false) {
-  const input=document.querySelector('#search-input'), result=document.querySelector('#search-results');
-  const query=pagination?shownSearch?.query:input.value.trim(), key=queryKey(query || '');
-  if(!key || searchBusy || (!pagination && searchCache.get(key)?.has(1)))return;
-  const cached=searchCache.get(key)?.get(page);
-  if(cached){renderSearchPage(query,page,cached);return;}
-  const request=++searchRequest;
-  searchController?.abort(); searchController=new AbortController(); searchBusy=true; updateSearchButton();
-  result.setAttribute('aria-busy','true');
-  result.querySelectorAll('.search-pagination button').forEach(button=>button.disabled=true);
-  if(page===1)result.textContent='Searching…';
-  try {
-    const entry=await loadSearchResults(query,page,searchController.signal);
-    if(request!==searchRequest || state.view!=='search' || !result.isConnected)return;
-    renderSearchPage(query,page,entry);
-    // Warm only the first result, without delaying the page or starting audio.
-    if(entry.ids.length)engine.prepare(tracks[entry.ids[0]]).then(()=>updatePlayback()).catch(()=>{});
-  } catch(error) {
-    if(request===searchRequest && result.isConnected){
-      if(shownSearch && page>1)renderSearchPage(shownSearch.query,shownSearch.page,searchCache.get(key).get(shownSearch.page));
-      else result.textContent='';
-      const message=document.createElement('p');message.className='search-meta';message.textContent=error.message || 'Search failed. Try again.';result.append(message);
-    }
-  } finally {if(request===searchRequest){searchBusy=false;result.removeAttribute('aria-busy');updateSearchButton();}}
-}
-
 const quickPanel=document.querySelector('#quick-search');
 const quickForm=document.querySelector('#quick-search-form');
 const quickInput=document.querySelector('#quick-search-input');
@@ -624,6 +583,7 @@ const actions={
   'queue-artist':()=>{const a=currentArtist();if(a){enqueue(a.tracks);const button=document.querySelector('[data-action="queue-artist"]');if(button){button.innerHTML=icon('check');button.setAttribute('aria-label','Artist tracks added to queue');button.disabled=true;}}},
   fullscreen:renderFullscreen,
   navigate: el=>navigate(el.dataset.view),
+  'focus-search':openQuickSearch,
   'open-album':el=>openRadioAlbum(radioAlbum(el.dataset.id)),
   'play-album':el=>{
     const album=radioAlbum(el.dataset.id);
@@ -659,8 +619,6 @@ const actions={
   mute:()=>{if(state.volume>0){state.previousVolume=state.volume;state.volume=0;}else state.volume=state.previousVolume||.65;setVolume(state.volume);},
   queue:()=>state.overlay?.type==='queue'?closeOverlay():renderQueue(),
   'close-overlay':()=>closeOverlay(),
-  'search-page':el=>resolveSearch(Number(el.dataset.page),true),
-  'clear-search':()=>{cancelSearch();shownSearch=null;const input=document.querySelector('#search-input');input.value='';document.querySelector('#search-results').textContent='';updateSearchButton();input.focus();},
   'play-liked':()=>{const ids=[...state.likes];playWithRadio(ids[0],ids);},
   'remove-queue':el=>{const id=Number(el.dataset.id);const rowPosition=Number(el.closest('[data-queue-position]')?.dataset.queuePosition);const index=Number.isInteger(rowPosition)&&rowPosition>state.queuePosition&&state.queue[rowPosition]===id?rowPosition:state.queue.indexOf(id,state.queuePosition+1);if(index>=0){state.queue.splice(index,1);state.manualQueue.delete(id);}renderQueue();},
   'queue-track':el=>{enqueue([Number(el.dataset.id)],true);closeOverlay();},
@@ -678,14 +636,14 @@ const actions={
 };
 function setVolume(value) {state.volume=value;engine.setVolume(value);for(const input of document.querySelectorAll('#volume,#full-volume')){input.value=value;input.style.setProperty('--fill',`${value*100}%`);}const button=document.querySelector('.volume-button');button.innerHTML=icon(value===0?'muted':'volume');button.setAttribute('aria-label',value===0?'Unmute':'Mute');miniWave?.wake();coverWave?.wake();syncFullscreen();}
 document.addEventListener('click',event=>{const el=event.target.closest('[data-action]');if(el){const action=actions[el.dataset.action];if(action){if(el.tagName==='A'){if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();}action(el);}}else if(event.target.hasAttribute('data-backdrop'))closeOverlay();});
-document.addEventListener('input',event=>{const el=event.target;if(el.id==='search-input'){cancelSearch();const result=document.querySelector('#search-results');result?.removeAttribute('aria-busy');const cached=searchCache.get(queryKey(el.value))?.get(1);if(cached)renderSearchPage(el.value.trim(),1,cached);else {shownSearch=null;result.innerHTML=el.value.trim()?'Press Search to find tracks.':'';}updateSearchButton();}if(el.id==='progress'||el.id==='full-progress')seek(Number(el.value));if(el.id==='volume'||el.id==='full-volume')setVolume(Number(el.value));});
-document.addEventListener('submit',event=>{if(event.target.id==='resolve-form'){event.preventDefault();resolveSearch();return;}if(event.target.id!=='playlist-form')return;event.preventDefault();const input=document.querySelector('#playlist-name');const name=input.value.trim();if(!name){input.focus();return;}state.playlists.push({name,tracks:state.current===null?[]:[state.current]});persist();updateSidebar();if(state.view==='library')content.innerHTML=libraryContent();customPlaylist(state.playlists.length-1);toast(`“${name}” created`);});
-document.addEventListener('keydown',event=>{const editable=['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName);if(event.key==='Escape'){if(!quickPanel.hidden || quickForm.contains(event.target)){event.preventDefault();closeQuickSearch(true);return;}if(state.overlay)closeOverlay();else if(state.view==='search')navigate('home');else if(state.view==='artist')backFromArtist();}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){if(!state.overlay){event.preventDefault();openQuickSearch();}return;}if(event.code==='Space'&&!editable&&!['BUTTON','A'].includes(event.target.tagName)){event.preventDefault();togglePlay();}if(event.altKey&&!editable&&event.key==='ArrowRight'){event.preventDefault();nextTrack();}if(event.altKey&&!editable&&event.key==='ArrowLeft'){event.preventDefault();nextTrack(-1);}if(event.key==='Tab'&&state.overlay){const scope=state.overlay.type==='fullscreen'?document:overlayRoot;const els=[...scope.querySelectorAll(state.overlay.type==='fullscreen'?'.listening-room button,.listening-room input,.listening-room a,.player button,.player input,.player a':'button,input,a,[tabindex="0"]')].filter(el=>!el.disabled&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden');if(!els.length)return;const first=els[0],last=els[els.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
+document.addEventListener('input',event=>{const el=event.target;if(el.id==='progress'||el.id==='full-progress')seek(Number(el.value));if(el.id==='volume'||el.id==='full-volume')setVolume(Number(el.value));});
+document.addEventListener('submit',event=>{if(event.target.id!=='playlist-form')return;event.preventDefault();const input=document.querySelector('#playlist-name');const name=input.value.trim();if(!name){input.focus();return;}state.playlists.push({name,tracks:state.current===null?[]:[state.current]});persist();updateSidebar();if(state.view==='library')content.innerHTML=libraryContent();customPlaylist(state.playlists.length-1);toast(`“${name}” created`);});
+document.addEventListener('keydown',event=>{const editable=['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName);if(event.key==='Escape'){if(!quickPanel.hidden || quickForm.contains(event.target)){event.preventDefault();closeQuickSearch(true);return;}if(state.overlay)closeOverlay();else if(state.view==='artist')backFromArtist();}if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){if(!state.overlay){event.preventDefault();openQuickSearch();}return;}if(event.code==='Space'&&!editable&&!['BUTTON','A'].includes(event.target.tagName)){event.preventDefault();togglePlay();}if(event.altKey&&!editable&&event.key==='ArrowRight'){event.preventDefault();nextTrack();}if(event.altKey&&!editable&&event.key==='ArrowLeft'){event.preventDefault();nextTrack(-1);}if(event.key==='Tab'&&state.overlay){const scope=state.overlay.type==='fullscreen'?document:overlayRoot;const els=[...scope.querySelectorAll(state.overlay.type==='fullscreen'?'.listening-room button,.listening-room input,.listening-room a,.player button,.player input,.player a':'button,input,a,[tabindex="0"]')].filter(el=>!el.disabled&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden');if(!els.length)return;const first=els[0],last=els[els.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}});
 setInterval(()=>{if(state.playing){state.position=engine.getCurrentTime();updatePosition();}},250);
 window.addEventListener('pagehide',()=>{++state.sessionPlay;state.loading=false;if(state.playing)state.position=engine.getCurrentTime();engine.pause();state.playing=false;updatePlayback();});
 miniWave=createArtworkWave(document.querySelector('.mini-art-wave'),()=>({playing:state.playing,analyser:engine.getAnalyser(),track:state.current,volume:state.volume}));
 const initialArtist=artistLinkTarget(location.hash);
-hydrateIcons();navigate('home',false);updateSidebar();updatePlayback();setVolume(.65);
+hydrateIcons();navigate('home');updateSidebar();updatePlayback();setVolume(.65);
 
 // Route headset/OS commands through the same state transitions as the visible controls.
 if ('mediaSession' in navigator) {
@@ -734,7 +692,7 @@ function clearAccount() {
   state.user=null;state.authError='';state.likes.clear();state.favoriteErrors.clear();
   if(hadAccount){
     cancelArtistLoad();artistPages.clear();artistHeaders.clear();artistHistory=[];
-    cancelSearch();cancelQuickSearch();closeQuickSearch();searchCache.clear();shownSearch=null;
+    cancelQuickSearch();closeQuickSearch();searchCache.clear();
     quickResults.replaceChildren();quickStatus.textContent='';quickInput.value='';quickIds=[];quickPage=1;
     cancelRadioRequest();homeRadio=null;renderHomeRadio();
     ++state.sessionPlay;
@@ -742,7 +700,6 @@ function clearAccount() {
     state.current=null;state.position=0;state.loading=false;state.playing=false;
     state.queue=[];state.queuePosition=-1;state.manualQueue.clear();state.radioQueue.clear();state.playbackAlbum=null;
     if(state.view==='artist')navigate('home');
-    if(state.view==='search')content.innerHTML=searchContent();
   }
   favorites.csrf='';
   if(hadAccount||state.overlay?.type!=='sign-in')closeOverlay(false);
@@ -752,6 +709,8 @@ function renderAccount() {
   const name=state.user?.name || 'Guest';
   document.querySelector('.user-profile').innerHTML=`<span class="avatar" aria-hidden="true">${esc(name[0])}</span><span>${esc(name)}</span>${icon('chevrons')}`;
   const mobile=document.querySelector('.mobile-avatar');
+  document.querySelector('.topbar-auth').hidden=Boolean(state.user);
+  mobile.hidden=!state.user;
   mobile.textContent=state.user?name[0]:name;mobile.setAttribute('aria-label',name);
   let status=document.querySelector('#account-status');
   if(!status){status=document.createElement('div');status.id='account-status';status.setAttribute('role','status');content.before(status);}
