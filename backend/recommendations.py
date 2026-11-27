@@ -3,15 +3,17 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import partial
-from time import monotonic
+from itertools import zip_longest
 
 from requests import Session
 from ytmusicapi import YTMusic
 
+from artists import BROWSE_ID, artist_image, artist_key
 from resolver import ID, ResolveError, choose_cover
 
 log = logging.getLogger(__name__)
 LIMIT = 12
+DISCOVERY_ALBUM_LIMIT = 8
 ALBUM_ID = re.compile(r'MPRE[A-Za-z0-9_-]{3,100}')
 
 
@@ -107,22 +109,65 @@ def load_album(album_id):
     }
 
 
-def recommended_albums(items, timeout):
-    album_ids = dict.fromkeys(item['album']['id'] for item in items if 'album' in item)
-    if not album_ids or timeout <= 0:
+def load_discovery_artist(credit):
+    name, browse_id = credit['name'], credit.get('browse_id')
+    try:
+        with Session() as session:
+            session.request = partial(session.request, timeout=2)
+            music = YTMusic(requests_session=session)
+            if not browse_id:
+                matches = music.search(name, filter='artists', limit=5)
+                browse_id = next((match['browseId'] for match in matches
+                                  if artist_key(match.get('artist')) == artist_key(name)
+                                  and BROWSE_ID.fullmatch(match.get('browseId') or '')), None)
+            if not browse_id:
+                return None
+            profile = music.get_artist(browse_id)
+    except Exception as exc:
+        log.warning('YouTube Music discovery artist unavailable: %s', type(exc).__name__)
+        return None
+
+    if not isinstance(profile, dict):
+        return None
+
+    album_ids = []
+    for album in (profile.get('albums') or {}).get('results') or []:
+        if not isinstance(album, dict):
+            continue
+        album_id = album.get('browseId')
+        if isinstance(album_id, str) and ALBUM_ID.fullmatch(album_id) and album_id not in album_ids:
+            album_ids.append(album_id)
+        if len(album_ids) == 2:
+            break
+    return ({'name': name, 'browse_id': browse_id,
+             'header_image': artist_image({'thumbnail': profile.get('thumbnails')})}, album_ids)
+
+
+def collect_discovery(load, candidates, timeout):
+    if not candidates:
         return []
 
-    pool = ThreadPoolExecutor(max_workers=4)
+    pool = ThreadPoolExecutor(max_workers=8)
     try:
-        futures = [pool.submit(load_album, album_id) for album_id in album_ids]
+        futures = [pool.submit(load, candidate) for candidate in candidates]
         completed, _ = wait(futures, timeout=timeout)
-        return [album for future in futures if future in completed and (album := future.result())]
+        return [result for future in futures if future in completed and (result := future.result())]
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
 
 
+def get_discovery(artists, album_ids):
+    profiles = collect_discovery(load_discovery_artist, artists, timeout=4)
+    # Take one album per artist before considering another from the same discography.
+    from_profiles = [album_id for row in zip_longest(*(ids for _, ids in profiles))
+                     for album_id in row if album_id]
+    candidates = dict.fromkeys(album_id for pair in zip_longest(album_ids, from_profiles)
+                               for album_id in pair if album_id)
+    albums = collect_discovery(load_album, list(candidates)[:16], timeout=5)
+    return {'artists': [profile for profile, _ in profiles], 'albums': albums[:DISCOVERY_ALBUM_LIMIT]}
+
+
 def get_recommendations(video_id):
-    deadline = monotonic() + 6
     try:
         with Session() as session:
             session.request = partial(session.request, timeout=5)
@@ -143,6 +188,4 @@ def get_recommendations(video_id):
         seen.add(candidate)
         if len(items) == LIMIT:
             break
-    # Leave time to return the radio queue before the worker's hard timeout.
-    albums = recommended_albums(items, min(2.5, deadline - monotonic()))
-    return {'items': items, 'albums': albums} if albums else {'items': items}
+    return {'items': items}

@@ -2,7 +2,7 @@ import { artistBrowseId, artistCredits, artistKey, artistLabel, artistProfile } 
 import { API_BASE } from './config.js';
 import { FavoritesClient, favoriteIdentity, favoriteMetadata } from './favorites.js?v=2';
 import { createArtworkWave } from './artwork-wave.js?v=8';
-import { AudioEngine, searchTracks, recommendTracks } from './stream.js?v=11';
+import { AudioEngine, searchTracks, recommendTracks, discoverMusic } from './stream.js?v=12';
 import { createFullscreenLayout } from './fullscreen.js?v=10';
 import { createPlayerMaterial } from './liquid-glass.js?v=3';
 
@@ -35,6 +35,7 @@ const paths = {
   arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
   telegram:'<path fill="currentColor" stroke="none" fill-rule="evenodd" d="M22 3.2 2.3 10.8c-1.3.5-1.3 1.3-.3 1.7l5.1 1.6 1.9 5.8c.2.6.5.8.9.8.5 0 .8-.2 1.1-.5l2.5-2.4 5 3.7c.9.5 1.6.2 1.8-.9l3.2-15.8c.3-1.3-.5-2-1.5-1.6ZM8 13.7l11.5-7.2c.5-.3 1-.1.6.2l-9.4 8.5-.4 3.8L8 13.7Z"/>',
   headphones:'<path d="M3 13v-1a9 9 0 0 1 18 0v1M3 12h3v8H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 1-2Zm18 0h-3v8h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-1-2Z"/>',
+  person:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
   close:'<path d="m6 6 12 12M6 18 18 6"/>',
   down:'<path d="m5 9 7 7 7-7"/>',
   dots:'<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',
@@ -101,7 +102,7 @@ function homeContent() {
 }
 function homeRadioContent() {
   const radio=homeRadio || radioRequest;
-  const {seed,ids,artists,albums}=radio || {};
+  const {seed,ids}=radio || {};
   const status=seed===undefined?'Play or like a track to start your radio.':ids?'No radio tracks available.':'Loading radio…';
   return `<section class="section recent-section" aria-labelledby="home-repeat-heading">
     <div class="section-heading"><h2 id="home-repeat-heading">On repeat</h2></div>
@@ -109,6 +110,12 @@ function homeRadioContent() {
     ${ids?.length?`<div class="recent-tracks">${ids.map((id,i)=>trackRow(id,i)).join('')}</div>`:`<p class="search-meta" role="status">${status}</p>`}
     ${!radio?`<button class="pill-button primary" data-action="navigate" data-view="search">${icon('search')}Search music</button>`:''}
   </section>
+  <div id="home-discovery">${homeDiscoveryContent()}</div>`;
+}
+function homeDiscoveryContent() {
+  const {artists,albums,discovering}=homeRadio || {};
+  if(discovering)return '<p class="search-meta" role="status">Finding albums and artists…</p>';
+  return `
   ${artists?.size?`<section class="section artists-section" aria-labelledby="home-artists-heading">
     <div class="section-heading"><h2 id="home-artists-heading">Artists to explore</h2></div>
     <div class="artist-grid">${[...artists.values()].map(artistCard).join('')}</div>
@@ -120,7 +127,8 @@ function homeRadioContent() {
 }
 function artistCard(artist) {
   return `<button class="artist-card" data-action="open-artist" data-artist="${esc(artist.name)}" data-browse-id="${esc(artist.browse_id || '')}">
-    <img src="${esc(artist.cover)}" alt="" loading="lazy" /><strong>${esc(artist.name)}</strong><span>Artist</span></button>`;
+    <span class="artist-avatar" aria-hidden="true">${icon('person')}${artist.header_image?`<img src="${esc(artist.header_image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />`:''}</span>
+    <strong>${esc(artist.name)}</strong><span>Artist</span></button>`;
 }
 function albumCard(album) {
   return `<article class="album-card"><div class="album-art"><img src="${esc(album.cover)}" alt="" loading="lazy" />
@@ -427,33 +435,44 @@ async function loadRadio(seed, addToQueue=false) {
   const request={seed,controller:new AbortController()};
   radioRequest=request;
   if(!homeRadio)renderHomeRadio();
-  const {items,albums:releases}=await recommendTracks(tracks[seed].video_id,request.controller.signal);
+  const items=await recommendTracks(tracks[seed].video_id,request.controller.signal);
   if(radioRequest!==request)return;
-  radioRequest=null;
-  const ids=new Set(),artists=new Map(),albums=new Map();
-  for(const item of items){
-    const id=registerTrack(item);
-    if(ids.has(id))continue;
-    ids.add(id);
-    const cover=tracks[id].cover;
-    const credits=artistCredits(item);
-    for(const credit of credits){
-      const key=credit.browse_id || artistKey(credit.name);
-      if(!artists.has(key))artists.set(key,{...credit,cover});
-    }
-  }
-  for(const release of releases){
-    const {id,title,cover_link,artist_credits}=release;
-    albums.set(id,{id,title,cover:cover_link || placeholderArt,artist_credits,tracks:release.tracks.map(registerTrack)});
-  }
-  homeRadio={seed,ids:[...ids],artists,albums};
+  const radio={seed,ids:[...new Set(items.map(registerTrack))],artists:new Map(),albums:new Map(),discovering:!!items.length};
+  homeRadio=radio;
   renderHomeRadio();
-  if(!addToQueue)return;
-  const present=new Set(state.queue);
-  const additions=homeRadio.ids.filter(id=>!present.has(id));
-  state.queue.push(...additions);
-  for(const id of additions)state.radioQueue.add(id);
-  if(state.overlay?.type==='queue')renderQueue();
+  if(addToQueue){
+    const present=new Set(state.queue);
+    const additions=radio.ids.filter(id=>!present.has(id));
+    state.queue.push(...additions);
+    for(const id of additions)state.radioQueue.add(id);
+    if(state.overlay?.type==='queue')renderQueue();
+  }
+  await loadHomeDiscovery(radio,items,request.controller.signal);
+  if(radioRequest===request)radioRequest=null;
+}
+async function loadHomeDiscovery(radio, items, signal) {
+  const credits=artistCredits({artist_credits:items.flatMap(artistCredits)});
+  const knownNames=new Set(credits.filter(credit=>credit.browse_id).map(credit=>artistKey(credit.name)));
+  const candidates=credits.filter(credit=>credit.browse_id || !knownNames.has(artistKey(credit.name)));
+  const albumIds=[...new Set(items.flatMap(item=>item.album?.id?[item.album.id]:[]))];
+  const {artists,albums}=candidates.length||albumIds.length
+    ? await discoverMusic(candidates.slice(0,24),albumIds,signal) : {artists:[],albums:[]};
+  if(signal.aborted || homeRadio!==radio)return;
+
+  const byId=new Map(artists.map(artist=>[artist.browse_id,artist]));
+  const byName=new Map(artists.map(artist=>[artistKey(artist.name),artist]));
+  for(const credit of candidates){
+    const nameKey=artistKey(credit.name);
+    const profile=credit.browse_id?byId.get(credit.browse_id):byName.get(nameKey);
+    const artist=profile || credit;
+    radio.artists.set(artist.browse_id || nameKey,artist);
+  }
+  for(const {id,title,cover_link,artist_credits,tracks:albumTracks} of albums){
+    radio.albums.set(id,{id,title,cover:cover_link || placeholderArt,artist_credits,tracks:albumTracks.map(registerTrack)});
+  }
+  radio.discovering=false;
+  const region=document.querySelector('#home-discovery');
+  if(region)region.innerHTML=homeDiscoveryContent();
 }
 function playWithRadio(id, list=[id], albumId=null) {
   if(!tracks[id])return;
@@ -687,6 +706,7 @@ if ('mediaSession' in navigator) {
 document.addEventListener('error', event => {
   const image=event.target;
   if (!(image instanceof HTMLImageElement)) return;
+  if(image.closest('.artist-avatar')){image.remove();return;}
   if(image.classList.contains('artist-header-image')){
     image.remove();const a=currentArtist();
     if(a){artistHeaders.set(a.key,{status:'error',message:'Could not load the artist profile image.'});document.querySelector('.artist-hero').innerHTML=artistHeaderMarkup(a);}

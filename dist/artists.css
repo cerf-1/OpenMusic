@@ -11,7 +11,9 @@
 .now-playing-info > .artist-byline { font-size: 12px; margin-top: 4px; }
 .artist-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 22px; }
 .artist-card { min-width: 0; padding: 0; text-align: left; }
-.artist-card img { aspect-ratio: 1; border-radius: 50%; background: var(--paper); transition: filter .2s; }
+.artist-card > .artist-avatar { position: relative; display: grid; place-items: center; aspect-ratio: 1; overflow: hidden; border-radius: 50%; background: var(--paper); margin: 0; }
+.artist-avatar svg { width: 38%; height: 38%; }
+.artist-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: filter .2s; }
 .artist-card:hover img { filter: brightness(1.15); }
 .artist-card strong { display: block; margin-top: 14px; font-size: 14px; overflow-wrap: anywhere; }
 .artist-card > span { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; }

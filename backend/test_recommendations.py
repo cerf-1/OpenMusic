@@ -57,7 +57,8 @@ def test_radio_preserves_order_filters_entries_and_normalizes_metadata(monkeypat
         'video_id': 'C1234567890', 'title': 'Second', 'artist': None, 'duration_seconds': None,
         'cover_link': 'https://i.ytimg.com/vi/C1234567890/mqdefault.jpg',
     }
-    album, = result['albums']
+    discovery = recommendations.get_discovery([], [first['album']['id']])
+    album, = discovery['albums']
     assert album['id'] == first['album']['id']
     assert album['title'] == 'Release'
     assert album['cover_link'] == items[0]['cover_link']
@@ -66,11 +67,18 @@ def test_radio_preserves_order_filters_entries_and_normalizes_metadata(monkeypat
     assert album['tracks'][0]['duration_seconds'] == 180
 
 
-def test_radio_keeps_songs_when_album_references_are_singles_or_unavailable(monkeypatch):
+def test_discovery_expands_album_choices_and_uses_artist_profile_images(monkeypatch):
     toxicity = {'videoId': 'B1234567890', 'title': 'Toxicity',
                 'album': {'id': 'MPREb_single', 'name': 'Toxicity'}}
     other = {'videoId': 'C1234567890', 'title': 'Another song',
              'album': {'id': 'MPREb_unavailable', 'name': 'An unavailable release'}}
+    primary_id, guest_id = 'UC' + 'x' * 22, 'UC' + 'y' * 22
+    primary = {'name': 'Primary', 'browse_id': primary_id}
+    guest = {'name': 'Guest'}
+    primary_image = 'https://yt3.googleusercontent.com/primary'
+    guest_image = 'https://yt3.googleusercontent.com/guest'
+    primary_album_ids = ['MPREb_primary_one', 'MPREb_primary_two']
+    guest_album_id = 'MPREb_guest_one'
 
     class Radio:
         def __init__(self, requests_session):
@@ -79,15 +87,39 @@ def test_radio_keeps_songs_when_album_references_are_singles_or_unavailable(monk
         def get_watch_playlist(self, **options):
             return {'tracks': [toxicity, other]}
 
+        def search(self, query, **options):
+            assert query == 'Guest' and options['filter'] == 'artists'
+            return [{'artist': 'Guest Covers', 'browseId': primary_id},
+                    {'artist': 'Guest', 'browseId': guest_id}]
+
+        def get_artist(self, browse_id):
+            image, album_ids = ((primary_image, primary_album_ids) if browse_id == primary_id
+                                else (guest_image, [guest_album_id]))
+            return {'thumbnails': [{'url': image}],
+                    'albums': {'results': [{'browseId': album_id} for album_id in album_ids]},
+                    'singles': {'results': [{'browseId': 'MPREb_skip'}]}}
+
         def get_album(self, album_id):
             if album_id == 'MPREb_unavailable':
                 raise TimeoutError()
-            return {'type': 'Single', 'title': 'Toxicity', 'tracks': [toxicity]}
+            if album_id == 'MPREb_single':
+                return {'type': 'Single', 'title': 'Toxicity', 'tracks': [toxicity]}
+            assert album_id in [*primary_album_ids, guest_album_id]
+            return {'type': 'Album', 'title': album_id, 'tracks': [other]}
 
     monkeypatch.setattr(recommendations, 'YTMusic', Radio)
     result = recommendations.get_recommendations('A1234567890')
     assert [item['title'] for item in result['items']] == ['Toxicity', 'Another song']
-    assert 'albums' not in result
+    discovery = recommendations.get_discovery(
+        [primary, guest], [item['album']['id'] for item in result['items']]
+    )
+    assert discovery['artists'] == [
+        {**primary, 'header_image': primary_image},
+        {**guest, 'browse_id': guest_id, 'header_image': guest_image},
+    ]
+    assert [album['id'] for album in discovery['albums']] == [
+        primary_album_ids[0], guest_album_id, primary_album_ids[1],
+    ]
 
 
 def test_radio_failure_and_empty_result(monkeypatch):
@@ -118,6 +150,22 @@ def test_api_accepts_only_video_id(monkeypatch):
         assert response.json() == {'items': []}
         assert response.headers['cache-control'] == 'no-store'
         assert client.post('/api/v1/recommendations', json={'video_id': 'invalid'}).status_code == 422
+
+
+def test_discovery_api_validates_album_references(monkeypatch):
+    response = {'artists': [], 'albums': []}
+
+    def run(query, video_id, *, timeout, discovery_request):
+        assert discovery_request == {'artists': [{'name': 'Artist', 'browse_id': None}],
+                                     'album_ids': ['MPREb_release']}
+        return 'ok', response
+
+    monkeypatch.setattr('app.run_resolve', run)
+    with TestClient(app) as client:
+        request = {'artists': [{'name': 'Artist'}], 'album_ids': ['MPREb_release']}
+        assert client.post('/api/v1/discovery', json=request).json() == response
+        request['album_ids'] = ['https://example.org']
+        assert client.post('/api/v1/discovery', json=request).status_code == 422
 
 
 def test_only_linked_album_metadata_is_returned():

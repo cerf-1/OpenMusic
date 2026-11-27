@@ -22,13 +22,28 @@ export async function recommendTracks(video_id, signal) {
       signal:AbortSignal.any([signal, AbortSignal.timeout(12000)])
     });
     const data = response.ok ? await response.json() : null;
+    return Array.isArray(data?.items) ? data.items : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function discoverMusic(artists, album_ids, signal) {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/discovery`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({artists,album_ids}),
+      signal:AbortSignal.any([signal, AbortSignal.timeout(15000)])
+    });
+    const data = response.ok ? await response.json() : null;
     return {
-      items:Array.isArray(data?.items) ? data.items : [],
+      artists:Array.isArray(data?.artists) ? data.artists : [],
       albums:Array.isArray(data?.albums) ? data.albums : []
     };
   } catch {
-    return {items:[],albums:[]};
+    // The radio queue is available while discovery is loading or unavailable.
   }
+  return {artists:[],albums:[]};
 }
 
 export class AudioEngine {

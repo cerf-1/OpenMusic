@@ -15,6 +15,12 @@ const rec2={...rec1,video_id:'R1234567891',title:'Similar Two'};
 const rec3={...makeTrack('R1234567892','Similar Three','Other Artist'),album:{id:'MPREb_single',title:'Similar Three'}};
 const albumOnly={...rec1,video_id:'R1234567893',title:'Album Track'};
 const release={...rec1.album,cover_link:rec1.cover_link,artist_credits:[{name:rec1.artist}],tracks:[rec1,albumOnly,rec2]};
+const discoveryAlbums=[release,
+  {...release,id:'MPREb_second',title:'Second Album'},
+  {...release,id:'MPREb_third',title:'Third Album'}];
+const discoveryArtists=[
+  {name:rec1.artist,browse_id:'UC'+'a'.repeat(22),header_image:'/assets/cover-night.jpg'},
+  {name:rec3.artist,browse_id:'UC'+'b'.repeat(22),header_image:'/assets/cover-dunes.jpg'}];
 
 try {
   const page=await browser.newPage({viewport:{width:1440,height:900}});
@@ -33,9 +39,10 @@ try {
     };
   },{a,b});
   let user=null,likes=[{source:'demo',source_id:'weightless',title:'Weightless'}];
-  let releaseA,releaseB,failSave=false;
+  let releaseA,releaseB,releaseDiscovery,failSave=false;
   const aResponse=new Promise(resolve=>{releaseA=resolve;});
   const bResponse=new Promise(resolve=>{releaseB=resolve;});
+  const discoveryResponse=new Promise(resolve=>{releaseDiscovery=resolve;});
   await page.route('**/api/v1/**',async route=>{
     const request=route.request(), url=new URL(request.url());
     const path=url.pathname;
@@ -71,7 +78,15 @@ try {
       const itemsBySeed=new Map([[a.video_id,[old]],[b.video_id,[rec1,rec2,rec3]],
         [old.video_id,[rec1,rec2,rec3]],[rec1.video_id,[rec3]]]);
       const items=itemsBySeed.get(video_id) || [];
-      await route.fulfill({json:{items,albums:items.includes(rec1)?[release]:[]}}).catch(()=>{});
+      await route.fulfill({json:{items}}).catch(()=>{});
+      return;
+    }
+    if(path.endsWith('/discovery')){
+      const {artists,album_ids}=request.postDataJSON();
+      const full=album_ids.includes(rec1.album.id);
+      if(full)await discoveryResponse;
+      const profiles=discoveryArtists.filter(profile=>artists.some(artist=>artist.name===profile.name));
+      await route.fulfill({json:{artists:profiles,albums:full?discoveryAlbums:[]}}).catch(()=>{});
       return;
     }
     return route.abort();
@@ -124,10 +139,13 @@ try {
   await nav('home');
   assert.deepEqual(await home(),[rec1.title,rec2.title,rec3.title]);
   assert.equal(await page.getByRole('heading',{name:'On repeat'}).count(),1);
-  assert.equal(await page.getByRole('heading',{name:'Artists to explore'}).count(),1);
-  assert.equal(await page.getByRole('heading',{name:'Made for you'}).count(),1);
+  assert.equal(await page.getByRole('heading',{name:'Made for you'}).count(),0);
+  releaseDiscovery();
+  await page.getByRole('heading',{name:'Made for you'}).waitFor();
   assert.deepEqual(await page.locator('.artist-card strong').allTextContents(),[rec1.artist,rec3.artist]);
-  assert.deepEqual(await page.locator('.album-card .album-name').allTextContents(),[rec1.album.title]);
+  assert.deepEqual(await page.locator('.artist-avatar img').evaluateAll(images=>images.map(image=>image.getAttribute('src'))),
+    discoveryArtists.map(artist=>artist.header_image));
+  assert.deepEqual(await page.locator('.album-card .album-name').allTextContents(),discoveryAlbums.map(album=>album.title));
   assert.equal(await page.getByText(`Based on ${b.title}`,{exact:true}).count(),1);
   await page.locator('.artist-card').filter({hasText:rec1.artist}).click();
   await page.getByRole('heading',{name:rec1.artist}).waitFor();

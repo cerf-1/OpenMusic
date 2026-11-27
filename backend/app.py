@@ -14,13 +14,14 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from pathlib import Path
+from typing import Annotated
 import pymysql
 import settings
 from accounts import router as accounts_router
 from pydantic import BaseModel, ConfigDict, model_validator, Field
 from resolver import resolve, search, ResolveError
 from artists import get_artist
-from recommendations import get_recommendations
+from recommendations import ALBUM_ID, LIMIT, get_discovery, get_recommendations
 from audio_relay import register_audio, relay_audio
 
 class RedactOAuthQuery(logging.Filter):
@@ -87,11 +88,13 @@ async def invalid_request(request: Request, exc: RequestValidationError):
     return error('INVALID_REQUEST', 'Invalid request.', 422)
 
 
-def worker(conn, query, video_id, page=None, artist_request=None, recommendation_request=None):
+def worker(conn, query, video_id, page=None, artist_request=None, recommendation_request=None, discovery_request=None):
     if os.name == 'posix':
         os.setsid()
     try:
-        if recommendation_request is not None:
+        if discovery_request is not None:
+            result = get_discovery(**discovery_request)
+        elif recommendation_request is not None:
             result = get_recommendations(**recommendation_request)
         elif artist_request is not None:
             result = get_artist(**artist_request)
@@ -111,10 +114,12 @@ def worker(conn, query, video_id, page=None, artist_request=None, recommendation
         conn.close()
 
 
-def run_resolve(query, video_id, timeout=30, page=None, artist_request=None, recommendation_request=None):
+def run_resolve(query, video_id, timeout=30, page=None, artist_request=None, recommendation_request=None,
+                discovery_request=None):
     ctx = multiprocessing.get_context('spawn')
     parent, child = ctx.Pipe(duplex=False)
-    process = ctx.Process(target=worker, args=(child, query, video_id, page, artist_request, recommendation_request))
+    process = ctx.Process(target=worker, args=(child, query, video_id, page, artist_request,
+                                              recommendation_request, discovery_request))
     start = time.monotonic()
     try:
         process.start()
@@ -210,6 +215,31 @@ class ArtistRequest(BaseModel):
         if not self.name:
             raise ValueError('invalid artist name')
         return self
+
+
+class DiscoveryRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    artists: list[ArtistRequest] = Field(max_length=24)
+    album_ids: list[Annotated[str, Field(pattern=f'^{ALBUM_ID.pattern}$')]] = Field(max_length=LIMIT)
+
+
+discovery_slots = asyncio.Semaphore(2)
+
+
+@app.post('/api/v1/discovery')
+async def discovery_endpoint(body: DiscoveryRequest):
+    empty = {'artists': [], 'albums': []}
+    try:
+        await asyncio.wait_for(discovery_slots.acquire(), timeout=2)
+    except TimeoutError:
+        return JSONResponse(empty, headers={'Cache-Control': 'no-store'})
+    try:
+        kind, result = await asyncio.to_thread(
+            run_resolve, None, None, timeout=12, discovery_request=body.model_dump()
+        )
+    finally:
+        discovery_slots.release()
+    return JSONResponse(result if kind == 'ok' else empty, headers={'Cache-Control': 'no-store'})
 
 
 @app.post('/api/v1/artist')
