@@ -16,7 +16,6 @@ const paths = {
   library:'<path d="M4 4v16M8 4v16M13 5l4-1 4 15-4 1-4-15Z"/>',
   heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0l-1 1-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
-  chevrons:'<path d="m8 9 4-4 4 4m-8 6 4 4 4-4"/>',
   bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
   play:'<path d="m9 5 11 7-11 7V5Z" fill="currentColor" stroke="none"/>',
@@ -707,11 +706,10 @@ function clearAccount() {
 }
 function renderAccount() {
   const name=state.user?.name || 'Guest';
-  document.querySelector('.user-profile').innerHTML=`<span class="avatar" aria-hidden="true">${esc(name[0])}</span><span>${esc(name)}</span>${icon('chevrons')}`;
-  const mobile=document.querySelector('.mobile-avatar');
+  const avatar=document.querySelector('.profile-avatar');
   document.querySelector('.topbar-auth').hidden=Boolean(state.user);
-  mobile.hidden=!state.user;
-  mobile.textContent=state.user?name[0]:name;mobile.setAttribute('aria-label',name);
+  avatar.textContent=[...name][0];
+  avatar.setAttribute('aria-label',name);
   let status=document.querySelector('#account-status');
   if(!status){status=document.createElement('div');status.id='account-status';status.setAttribute('role','status');content.before(status);}
   status.textContent=state.authError;

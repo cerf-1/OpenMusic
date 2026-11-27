@@ -10,12 +10,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;650;700;750;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css?v=6" />
-  <link rel="stylesheet" href="./refinement.css?v=24" />
+  <link rel="stylesheet" href="./style.css?v=7" />
+  <link rel="stylesheet" href="./refinement.css?v=25" />
   <link rel="stylesheet" href="./liquid-glass.css?v=4" />
   <link rel="stylesheet" href="./fullscreen.css?v=16" />
   <link rel="stylesheet" href="./artwork-wave.css?v=2" />
-  <link rel="stylesheet" href="./quick-search.css?v=11" />
+  <link rel="stylesheet" href="./quick-search.css?v=12" />
   <link rel="stylesheet" href="./artists.css?v=7" />
 </head>
 <body>
@@ -30,7 +30,6 @@
       <button class="collection-item" data-action="navigate" data-view="liked"><span class="collection-cover liked-cover" data-icon="heart"></span><span>Liked Songs<small id="liked-count">0 tracks</small></span></button>
       <div id="custom-playlists"></div>
     </nav>
-    <div class="sidebar-bottom"><button class="user-profile" data-action="profile"><span class="avatar" aria-hidden="true">G</span><span>Guest</span><span data-icon="chevrons"></span></button></div>
   </aside>
 
   <main class="main-shell">
@@ -53,7 +52,7 @@
           <button type="button" class="topbar-signup" data-action="login">Sign up</button>
           <button type="button" class="topbar-login" data-action="login">Log in</button>
         </div>
-        <button class="mobile-avatar avatar" data-action="profile" aria-label="Guest" hidden>Guest</button>
+        <button type="button" class="profile-avatar" data-action="profile" aria-label="Guest">G</button>
       </div>
     </header>
     <div id="content" tabindex="-1"></div>
@@ -68,6 +67,6 @@
 
   <nav class="mobile-nav" aria-label="Mobile navigation"><button data-action="navigate" data-view="home" class="active"><span data-icon="search"></span>Search</button><button data-action="navigate" data-view="library"><span data-icon="library"></span>Library</button></nav>
   <div id="overlay-root"></div>
-  <script type="module" src="./app.js?v=51"></script>
+  <script type="module" src="./app.js?v=52"></script>
 </body>
 </html>

@@ -56,7 +56,9 @@ try {
   user={id:1,name:'Test Listener',username:'listener'};
   saved.track=[{type:'track',source:'youtube',source_id:'Abcdefghijk',title:'Saved YouTube',artist:'Remote Artist',cover:'https://i.ytimg.com/vi/Abcdefghijk/mqdefault.jpg',duration_seconds:123}];
   await page.reload();
-  await page.locator('.user-profile').filter({hasText:'Test Listener'}).waitFor();
+  const profile=page.locator('.topbar').getByRole('button',{name:'Test Listener',exact:true});
+  await profile.waitFor();
+  assert.equal(await profile.textContent(),'T');
   await page.locator('[data-action="navigate"][data-view="liked"]').first().click();
   await page.getByText('Saved YouTube',{exact:true}).waitFor();
   await page.locator('.track-text').click();
@@ -72,7 +74,7 @@ try {
   failSave=false;
   await heart.click();
   await page.waitForFunction(()=>document.querySelector('#search-results [data-action=like]').getAttribute('aria-pressed')==='true');
-  await page.locator('.user-profile').click();
+  await profile.click();
   await page.getByRole('button',{name:'Sign out',exact:true}).click();
   await page.getByRole('button',{name:'Guest',exact:true}).waitFor();
   await page.locator('[data-action="navigate"][data-view="liked"]').first().click();

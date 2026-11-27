@@ -185,7 +185,8 @@ try {
 
   user={id:1,name:'Listener'};
   await page.reload();
-  await page.locator('.user-profile').filter({hasText:'Listener'}).waitFor();
+  const profile=page.locator('.topbar').getByRole('button',{name:'Listener',exact:true});
+  await profile.waitFor();
   await liked();
   assert.equal(await page.locator('.track-row').count(),0);
   await page.getByRole('button',{name:/My Mix/}).click();
@@ -268,9 +269,9 @@ try {
   await count('.queue-panel .track-row',4);
   assert.deepEqual(await queue(),[rec1.title,albumOnly.title,rec2.title,rec3.title]);
   await close();
-  await page.locator('.user-profile').click();
+  await profile.click();
   await page.getByRole('button',{name:'Sign out'}).click();
-  await page.locator('.user-profile').filter({hasText:'Guest'}).waitFor();
+  await page.locator('.topbar').getByRole('button',{name:'Guest',exact:true}).waitFor();
   assert.deepEqual(await home(),[]);
   assert.deepEqual(recommendationCalls,[...beforeLiked,a.video_id,b.video_id,a.video_id,a.video_id,old.video_id,rec1.video_id]);
   assert.deepEqual(errors,[]);
