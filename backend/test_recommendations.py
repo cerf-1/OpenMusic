@@ -20,17 +20,29 @@ def test_radio_preserves_order_filters_entries_and_normalizes_metadata(monkeypat
 
     class Radio:
         def __init__(self, requests_session):
-            assert requests_session.request.keywords['timeout'] == 5
+            self.timeout = requests_session.request.keywords['timeout']
 
         def get_watch_playlist(self, **options):
+            assert self.timeout == 5
             assert options == {'videoId': seed, 'radio': True, 'limit': 13}
             return {'tracks': [None, {'videoId': seed, 'title': 'Seed'},
                                {'videoId': 'bad', 'title': 'Invalid'},
                                {'videoId': 'C1234567890', 'title': ' '},
                                first, first, second, *more]}
 
+        def get_album(self, album_id):
+            assert self.timeout == 2
+            assert album_id == first['album']['id']
+            return {'type': 'Album', 'title': 'Release', 'artists': first['artists'],
+                    'thumbnails': first['thumbnail'], 'tracks': [
+                        {'videoId': 'Z1234567890', 'title': 'Album opener', 'duration_seconds': 180},
+                        {'videoId': 'Y1234567890', 'title': 'Unavailable', 'isAvailable': False},
+                        first,
+                    ]}
+
     monkeypatch.setattr(recommendations, 'YTMusic', Radio)
-    items = recommendations.get_recommendations(seed)['items']
+    result = recommendations.get_recommendations(seed)
+    items = result['items']
     assert [item['video_id'] for item in items] == ['B1234567890', 'C1234567890'] + [
         track['videoId'] for track in more[:10]
     ]
@@ -45,6 +57,37 @@ def test_radio_preserves_order_filters_entries_and_normalizes_metadata(monkeypat
         'video_id': 'C1234567890', 'title': 'Second', 'artist': None, 'duration_seconds': None,
         'cover_link': 'https://i.ytimg.com/vi/C1234567890/mqdefault.jpg',
     }
+    album, = result['albums']
+    assert album['id'] == first['album']['id']
+    assert album['title'] == 'Release'
+    assert album['cover_link'] == items[0]['cover_link']
+    assert album['artist_credits'] == items[0]['artist_credits']
+    assert [item['title'] for item in album['tracks']] == ['Album opener', 'First']
+    assert album['tracks'][0]['duration_seconds'] == 180
+
+
+def test_radio_keeps_songs_when_album_references_are_singles_or_unavailable(monkeypatch):
+    toxicity = {'videoId': 'B1234567890', 'title': 'Toxicity',
+                'album': {'id': 'MPREb_single', 'name': 'Toxicity'}}
+    other = {'videoId': 'C1234567890', 'title': 'Another song',
+             'album': {'id': 'MPREb_unavailable', 'name': 'An unavailable release'}}
+
+    class Radio:
+        def __init__(self, requests_session):
+            pass
+
+        def get_watch_playlist(self, **options):
+            return {'tracks': [toxicity, other]}
+
+        def get_album(self, album_id):
+            if album_id == 'MPREb_unavailable':
+                raise TimeoutError()
+            return {'type': 'Single', 'title': 'Toxicity', 'tracks': [toxicity]}
+
+    monkeypatch.setattr(recommendations, 'YTMusic', Radio)
+    result = recommendations.get_recommendations('A1234567890')
+    assert [item['title'] for item in result['items']] == ['Toxicity', 'Another song']
+    assert 'albums' not in result
 
 
 def test_radio_failure_and_empty_result(monkeypatch):

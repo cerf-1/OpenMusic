@@ -22,9 +22,12 @@ export async function recommendTracks(video_id, signal) {
       signal:AbortSignal.any([signal, AbortSignal.timeout(12000)])
     });
     const data = response.ok ? await response.json() : null;
-    return Array.isArray(data?.items) ? data.items : [];
+    return {
+      items:Array.isArray(data?.items) ? data.items : [],
+      albums:Array.isArray(data?.albums) ? data.albums : []
+    };
   } catch {
-    return [];
+    return {items:[],albums:[]};
   }
 }
 

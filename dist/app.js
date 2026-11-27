@@ -2,7 +2,7 @@ import { artistBrowseId, artistCredits, artistKey, artistLabel, artistProfile } 
 import { API_BASE } from './config.js';
 import { FavoritesClient, favoriteIdentity, favoriteMetadata } from './favorites.js?v=2';
 import { createArtworkWave } from './artwork-wave.js?v=8';
-import { AudioEngine, searchTracks, recommendTracks } from './stream.js?v=10';
+import { AudioEngine, searchTracks, recommendTracks } from './stream.js?v=11';
 import { createFullscreenLayout } from './fullscreen.js?v=10';
 import { createPlayerMaterial } from './liquid-glass.js?v=3';
 
@@ -427,7 +427,7 @@ async function loadRadio(seed, addToQueue=false) {
   const request={seed,controller:new AbortController()};
   radioRequest=request;
   if(!homeRadio)renderHomeRadio();
-  const items=await recommendTracks(tracks[seed].video_id,request.controller.signal);
+  const {items,albums:releases}=await recommendTracks(tracks[seed].video_id,request.controller.signal);
   if(radioRequest!==request)return;
   radioRequest=null;
   const ids=new Set(),artists=new Map(),albums=new Map();
@@ -441,11 +441,10 @@ async function loadRadio(seed, addToQueue=false) {
       const key=credit.browse_id || artistKey(credit.name);
       if(!artists.has(key))artists.set(key,{...credit,cover});
     }
-    if(item.album){
-      const {id:albumId,title}=item.album;
-      if(!albums.has(albumId))albums.set(albumId,{id:albumId,title,cover,artist_credits:credits,tracks:[]});
-      albums.get(albumId).tracks.push(id);
-    }
+  }
+  for(const release of releases){
+    const {id,title,cover_link,artist_credits}=release;
+    albums.set(id,{id,title,cover:cover_link || placeholderArt,artist_credits,tracks:release.tracks.map(registerTrack)});
   }
   homeRadio={seed,ids:[...ids],artists,albums};
   renderHomeRadio();

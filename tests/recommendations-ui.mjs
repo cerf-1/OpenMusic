@@ -12,7 +12,9 @@ const manual=makeTrack('M1234567890','Manual Track','Manual Artist');
 const old=makeTrack('O1234567890','Old Recommendation','Old Artist');
 const rec1={...makeTrack('R1234567890','Similar One','Similar Artist'),album:{id:'MPREb_test',title:'A Release'}};
 const rec2={...rec1,video_id:'R1234567891',title:'Similar Two'};
-const rec3=makeTrack('R1234567892','Similar Three','Other Artist');
+const rec3={...makeTrack('R1234567892','Similar Three','Other Artist'),album:{id:'MPREb_single',title:'Similar Three'}};
+const albumOnly={...rec1,video_id:'R1234567893',title:'Album Track'};
+const release={...rec1.album,cover_link:rec1.cover_link,artist_credits:[{name:rec1.artist}],tracks:[rec1,albumOnly,rec2]};
 
 try {
   const page=await browser.newPage({viewport:{width:1440,height:900}});
@@ -69,7 +71,7 @@ try {
       const itemsBySeed=new Map([[a.video_id,[old]],[b.video_id,[rec1,rec2,rec3]],
         [old.video_id,[rec1,rec2,rec3]],[rec1.video_id,[rec3]]]);
       const items=itemsBySeed.get(video_id) || [];
-      await route.fulfill({json:{items}}).catch(()=>{});
+      await route.fulfill({json:{items,albums:items.includes(rec1)?[release]:[]}}).catch(()=>{});
       return;
     }
     return route.abort();
@@ -238,15 +240,15 @@ try {
 
   await page.getByRole('button',{name:`Open ${rec1.album.title}`,exact:true}).click();
   const album=page.getByRole('dialog',{name:rec1.album.title});
-  assert.deepEqual(await album.locator('.track-title').allTextContents(),[rec1.title,rec2.title]);
+  assert.deepEqual(await album.locator('.track-title').allTextContents(),[rec1.title,albumOnly.title,rec2.title]);
   await album.getByRole('button',{name:`Play ${rec1.album.title}`}).click();
   await nowPlaying(rec1.title);
   await album.getByRole('button',{name:`Pause ${rec1.album.title}`}).click();
   await page.waitForFunction(()=>!document.body.classList.contains('is-playing'));
   await close();
   await openQueue();
-  await count('.queue-panel .track-row',3);
-  assert.deepEqual(await queue(),[rec1.title,rec2.title,rec3.title]);
+  await count('.queue-panel .track-row',4);
+  assert.deepEqual(await queue(),[rec1.title,albumOnly.title,rec2.title,rec3.title]);
   await close();
   await page.locator('.user-profile').click();
   await page.getByRole('button',{name:'Sign out'}).click();
