@@ -33,11 +33,16 @@ try {
     return route.fulfill({status:401,json:{}});
   });
   await page.goto(process.env.UI_TEST_ORIGIN || 'http://127.0.0.1:4173');
+  const quickInput=page.locator('#quick-search-input');
+  const quickLinks=page.locator('.quick-search-track a');
+  async function search(query){
+    await quickInput.fill(query);
+    await quickInput.press('Enter');
+    await quickLinks.first().waitFor();
+  }
   assert.equal(await page.locator('.artist-card').count(),0);
-  await page.locator('.nav-item[data-view="search"]').click();
-  await page.locator('#search-input').fill('remote');
-  await page.locator('#resolve-form [type="submit"]').click();
-  await page.locator('#search-results .track-artist a').click();
+  await search('remote');
+  await quickLinks.click();
   assert.equal(await page.locator('#artist-title').textContent(),'Remote <Artist>');
   await page.getByRole('button',{name:'Retry',exact:true}).waitFor();
   assert.equal(await page.locator('.artist-header-image').count(),0);
@@ -46,10 +51,25 @@ try {
   await page.locator('.artist-header-image').evaluate(img=>img.decode());
   assert.equal(await page.locator('.artist-header-image').getAttribute('src'),'/assets/cover-forest.jpg');
   assert.equal(headerRequests[0].browse_id,'UCfRoOGGP0qMFHK7sYiL34_g');
-  for(const width of [1440,390,320]){
+  for(const width of [1857,1440,390,320]){
     await page.setViewportSize({width,height:844});
-    const layout=await page.evaluate(()=>{const hero=document.querySelector('.artist-hero'),r=hero.getBoundingClientRect(),s=document.querySelector('.main-shell').getBoundingClientRect();return {left:r.left,right:r.right,shell:s.left,radius:getComputedStyle(hero).borderRadius,top:r.top,overflow:document.documentElement.scrollWidth>innerWidth};});
-    assert.equal(layout.left,layout.shell);assert.equal(layout.right,width);assert.equal(layout.top,0);assert.equal(layout.radius,'0px');assert.equal(layout.overflow,false);
+    const layout=await page.evaluate(()=>{
+      const bounds=selector=>document.querySelector(selector).getBoundingClientRect().toJSON();
+      return {
+        hero:bounds('.artist-hero'), image:bounds('.artist-header-image'),
+        bar:bounds('.topbar'), shell:bounds('.main-shell'), actions:bounds('.artist-actions'),
+        overflow:document.documentElement.scrollWidth>innerWidth
+      };
+    });
+    assert.equal(layout.hero.left,layout.shell.left);
+    assert.equal(layout.hero.right,width);
+    assert.equal(layout.hero.top,layout.bar.bottom);
+    assert.equal(layout.hero.left,layout.bar.left);
+    assert.equal(layout.hero.right,layout.bar.right);
+    assert.deepEqual(layout.image,layout.hero);
+    assert.ok(layout.hero.height<=(width<=720?340:400));
+    assert.equal(layout.hero.bottom,layout.actions.top);
+    assert.equal(layout.overflow,false);
     if(process.env.UI_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.UI_SCREENSHOT_DIR}/artist-header-${width}.png`});
   }
   await page.setViewportSize({width:1440,height:1000});
@@ -60,45 +80,40 @@ try {
   assert.equal(await page.getByText('Unrelated song',{exact:true}).count(),0);
   assert.equal(await page.locator('#artist-track-list .track-row').count(),2);
   assert.equal(await page.locator('[data-action="artist-more"]').isVisible(),false);
-  await page.locator('[data-action="artist-back"]').click();
-  assert.equal(await page.locator('#search-input').inputValue(),'remote');
-  assert.equal(await page.locator('#search-results .track-title').textContent(),'First song');
-  // Artist navigation inside a menu closes the modal and keeps playback intact.
-  await page.locator('#search-results [data-action="track-menu"]').click();
+  await page.locator('#artist-track-list [data-action="track-menu"]').first().click();
   await page.locator('.small-modal [data-action="open-artist"]').click();
   assert.equal(await page.locator('[role="dialog"]').count(),0);
+  await page.locator('[data-action="artist-back"]').click();
+  assert.equal(await quickInput.inputValue(),'remote');
+  await search('remote');
+  assert.equal(await page.locator('.quick-search-track strong').textContent(),'First song');
+  await quickLinks.click();
   assert.equal(await page.locator('.artist-header-image').getAttribute('src',{timeout:3000}),'/assets/cover-forest.jpg');
   await page.locator('.artist-header-image').evaluate(img=>img.decode());
   assert.equal(headerRequests.length,2);
   await page.locator('.nav-item[data-view="home"]').click();
   assert.equal(await page.locator('.artist-card').count(),0);
-  await page.locator('.nav-item[data-view="search"]').click();
-  await page.locator('#search-input').fill('collab');
-  await page.locator('#resolve-form [type="submit"]').click();
-  const links=page.locator('#search-results .track-artist a');
-  await links.first().waitFor();
-  assert.deepEqual(await links.allTextContents(),collab.map(credit=>credit.name));
+  await search('collab');
+  assert.deepEqual(await quickLinks.allTextContents(),collab.map(credit=>credit.name));
   for(const credit of collab){
-    const link=links.getByText(credit.name,{exact:true});
+    const link=quickLinks.getByText(credit.name,{exact:true});
     const request=page.waitForRequest(req=>req.url().endsWith('/artist')&&req.postDataJSON().name===credit.name);
     await link.click();
     assert.deepEqual((await request).postDataJSON(),credit);
     assert.equal(await page.locator('#artist-title').textContent(),credit.name);
     assert.equal(new URLSearchParams(new URL(page.url()).hash.slice(1)).get('browse_id'),credit.browse_id);
     await page.locator('.artist-back').click();
+    await search('collab');
   }
-  const direct=await links.last().getAttribute('href');
-  await page.locator('#search-results .track-text').click();
+  const direct=await quickLinks.last().getAttribute('href');
+  await page.locator('.quick-search-play').click();
   assert.deepEqual(await page.locator('#player-artist a').allTextContents(),collab.map(credit=>credit.name));
   await page.locator('.mini-art-button').click();
   assert.deepEqual(await page.locator('#full-artist a').allTextContents(),collab.map(credit=>credit.name));
   await page.locator('#full-artist a').last().click();
   assert.equal(await page.locator('#artist-title').textContent(),'madk1d');
   await page.locator('.artist-back').click();
-  await page.locator('#quick-search-input').fill('collab');
-  await page.locator('#quick-search-input').press('Enter');
-  const quickLinks=page.locator('.quick-search-track a');
-  await quickLinks.first().waitFor();
+  await search('collab');
   assert.deepEqual(await quickLinks.allTextContents(),collab.map(credit=>credit.name));
   await quickLinks.first().click();
   assert.equal(await page.locator('#artist-title').textContent(),'VILLIAN');
